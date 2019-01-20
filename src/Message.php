@@ -87,6 +87,7 @@ abstract class Message
     /**
      * Set headers.
      * @param  array $headers
+     * @param  bool  $bool
      * @return self
      */
     public final function setHeaders(array $headers, bool $sort = true): self
@@ -130,7 +131,7 @@ abstract class Message
      */
     public final function hasHeader(string $name): bool
     {
-        return ($this->getHeader($name) !== null);
+        return $this->getHeader($name) !== null;
     }
 
     /**
