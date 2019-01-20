@@ -87,7 +87,7 @@ abstract class Message
     /**
      * Set headers.
      * @param  array $headers
-     * @param  bool  $bool
+     * @param  bool  $sort
      * @return self
      */
     public final function setHeaders(array $headers, bool $sort = true): self
