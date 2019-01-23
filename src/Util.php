@@ -26,6 +26,8 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
+use Froq\Dom\Dom;
+
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
@@ -129,62 +131,12 @@ final /* static */ class Util
     /**
      * Parse xml.
      * @param  any  $xml
-     * @param  bool $skipEmptyTextNodes
+     * @param  array $options
      * @return any
      */
-    public static function parseXml($xml, bool $skipEmptyTextNodes = true)
+    public static function parseXml($xml, array $options = null)
     {
-        $root = $xml;
-        if (is_string($root)) {
-            $root = new \DOMDocument();
-            $root->loadXml($xml);
-        }
-
-        $return = [];
-
-        if ($root->hasAttributes()) {
-            $attributes = $root->attributes;
-            foreach ($attributes as $attribute) {
-                $return['@attributes'][$attribute->name] = $attribute->value;
-            }
-        }
-
-        if ($root->hasChildNodes()) {
-            $childNodes = $root->childNodes;
-            if ($childNodes->length == 1) {
-                $childNode = $childNodes->item(0);
-                if ($childNode->nodeType == XML_TEXT_NODE) {
-                    $return['_value'] = $childNode->nodeValue;
-                    return count($return) == 1
-                        ? $return['_value'] : $return;
-                }
-            }
-
-            $groups = [];
-            foreach ($childNodes as $childNode) {
-                if (!isset($return[$childNode->nodeName])) {
-                    if ($skipEmptyTextNodes && $childNode->nodeType == XML_TEXT_NODE
-                        && trim($childNode->nodeValue) === '') { // pass
-                    } else {
-                        $return[$childNode->nodeName] = self::parseXml($childNode);
-                    }
-                } else {
-                    if (!isset($groups[$childNode->nodeName])) {
-                        $groups[$childNode->nodeName] = 1;
-                        if ($skipEmptyTextNodes && $childNode->nodeType == XML_TEXT_NODE
-                            && trim($childNode->nodeValue) === '') { // pass
-                        } else {
-                            $return[$childNode->nodeName] = [$return[$childNode->nodeName]];
-                        }
-                    }
-                    $return[$childNode->nodeName][] = self::parseXml($childNode);
-                }
-            }
-        } elseif ($root->nodeType == XML_COMMENT_NODE) {
-            $return = $root->nodeValue;
-        }
-
-        return $return;
+        return Dom::parseXml($xml, $options);
     }
 
     /**

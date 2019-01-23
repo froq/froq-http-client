@@ -382,7 +382,7 @@ final class Client
             if (strpos($contentType, '/json') || strpos($contentType, '+json')) {
                 $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
             } elseif (strpos($contentType, '/xml')) {
-                $body = Util::parseXml($body, $arguments['xmlOptions']['skipEmptyTextNodes'] ?? true);
+                $body = Util::parseXml($body, $arguments['xmlOptions']);
             }
 
             $this->response->setBody($body)
