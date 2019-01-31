@@ -255,10 +255,10 @@ final class Client
      * Send.
      * @param  string     $url
      * @param  array|null $arguments
-     * @return Froq\Http\Client\Response
+     * @return self
      * @throws Froq\Http\Client\ClientException
      */
-    public function send(string $url, array $arguments = null): Response
+    public function send(string $url, array $arguments = null): self
     {
         $this->reset();
 
@@ -412,7 +412,7 @@ final class Client
                            ->setRawBody($rawBody);
         }
 
-        return $this->response;
+        return $this;
     }
 
     /**
