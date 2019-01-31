@@ -193,20 +193,18 @@ final class Client
     }
 
     /**
-     * Set argument.
+     * Set arguments.
      * @param  array $arguments
      * @return self
      */
     public function setArguments(array $arguments): self
     {
-        foreach ($arguments as $key => $value) {
+        foreach ($arguments as $name => $value) {
             if (is_array($value)) {
-                foreach ($value as $key1 => $value1) {
-                    $this->arguments[$key][$key1] = $value1;
+                foreach ($value as $subName => $subValue) {
+                    $this->arguments[$name][$subName] = $subValue;
                 }
-            } else {
-                $this->arguments[$key] = $value;
-            }
+            } else { $this->arguments[$name] = $value; }
         }
 
         return $this;
@@ -219,6 +217,29 @@ final class Client
     public function getArguments(): array
     {
         return $this->arguments;
+    }
+
+    /**
+     * Set argument.
+     * @param  string $name
+     * @param  any    $value
+     * @return self
+     */
+    public function setArgument(string $name, $value): self
+    {
+        $this->setArguments([$name => $value]);
+
+        return $this;
+    }
+
+    /**
+     * Get argument.
+     * @param  string $name
+     * @return any
+     */
+    public function getArgument(string $name)
+    {
+        return $this->getArguments()[$name] ?? null;
     }
 
     /**
@@ -245,7 +266,9 @@ final class Client
         $this->request->setUrl($url)
                       ->setUrlParams($urlParams);
 
-        $arguments = $this->setArguments($arguments ?? [])->getArguments();
+        $this->setArguments($arguments ?? []);
+
+        $arguments = $this->getArguments();
         if (!empty($arguments)) {
             $this->request->setMethod($arguments['method']);
 
@@ -452,7 +475,7 @@ final class Client
      */
     public function setUserAgent(?string $userAgent): self
     {
-        return $this->setArguments(['headers' => ['User-Agent' => $userAgent]]);
+        return $this->setArgument('headers', ['User-Agent' => $userAgent]);
     }
 
     /**
@@ -472,6 +495,6 @@ final class Client
             $authorization = $credentials;
         }
 
-        return $this->setArguments(['headers' => ['Authorization' => $authorization ?? null]]);
+        return $this->setArgument('headers', ['Authorization' => $authorization ?? null]);
     }
 }
