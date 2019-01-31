@@ -255,10 +255,11 @@ final class Client
      * Send.
      * @param  string     $url
      * @param  array|null $arguments
+     * @param  callable   $callback
      * @return self
      * @throws Froq\Http\Client\ClientException
      */
-    public function send(string $url, array $arguments = null): self
+    public function send(string $url, array $arguments = null, callable $callback = null): self
     {
         $this->reset();
 
@@ -410,6 +411,10 @@ final class Client
 
             $this->response->setBody($body)
                            ->setRawBody($rawBody);
+        }
+
+        if ($callback != null) {
+            $callback($this->request, $this->response);
         }
 
         return $this;
