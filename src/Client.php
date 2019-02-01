@@ -208,7 +208,7 @@ final class Client extends AbstractClient
                            ->setRawBody($rawBody);
         }
 
-        $callback = $this->callback;
+        $callback = $this->getCallback();
         if ($callback != null) {
             $callback($this->request, $this->response);
         }
