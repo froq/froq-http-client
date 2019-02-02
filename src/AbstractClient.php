@@ -49,15 +49,21 @@ abstract class AbstractClient
 
     /**
      * Result.
-     * @var string
+     * @var ?string
      */
     protected $result;
 
     /**
      * Result info.
-     * @var array
+     * @var ?array
      */
     protected $resultInfo;
+
+    /**
+     * Callback.
+     * @var ?callable
+     */
+    protected $callback;
 
     /**
      * Options.
@@ -77,12 +83,6 @@ abstract class AbstractClient
     ];
 
     /**
-     * Callback.
-     * @var callable
-     */
-    protected $callback;
-
-    /**
      * Methods.
      * @var array
      */
@@ -91,18 +91,36 @@ abstract class AbstractClient
     ];
 
     /**
-     * Constructor.
-     * @param string|null $url
-     * @param array|null  $options
-     * @param array|null  $arguments
+     * Error.
+     * @var ?Froq\Http\Client\ClientError
      */
-    public final function __construct(string $url = null, array $options = null, array $arguments = null)
+    protected $error;
+
+    /**
+     * Agent.
+     * @var Froq\Http\Client\Agent\AgentInterface
+     */
+    protected $agent;
+
+    /**
+     * Constructor.
+     * @param string     $url
+     * @param array|null $options
+     * @param array|null $arguments
+     */
+    public final function __construct(string $url, array $options = null, array $arguments = null)
     {
-        if ($url != null) {
-            $this->setArgument('url', $url);
-        }
+        $this->setArgument('url', $url);
         $options && $this->setOptions($options);
         $arguments && $this->setArguments($arguments);
+    }
+
+    /**
+     * Destructor.
+     */
+    public final function __destruct()
+    {
+        $this->reset(true);
     }
 
     /**
@@ -159,6 +177,27 @@ abstract class AbstractClient
     public final function getResultInfo(string $key = null)
     {
         return ($key === null) ? $this->resultInfo : $this->resultInfo[$key] ?? null;
+    }
+
+    /**
+     * Set callback.
+     * @param  callable $callback
+     * @return self
+     */
+    public final function setCallback(callable $callback): self
+    {
+        $this->callback = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Get callback
+     * @return ?callable
+     */
+    public final function getCallback(): ?callable
+    {
+        return $this->callback;
     }
 
     /**
@@ -245,32 +284,11 @@ abstract class AbstractClient
     /**
      * Get argument.
      * @param  string $name
-     * @return any
+     * @return any|null
      */
     public final function getArgument(string $name)
     {
-        return $this->getArguments()[$name] ?? null;
-    }
-
-    /**
-     * Set callback.
-     * @param  callable $callback
-     * @return self
-     */
-    public final function setCallback(callable $callback): self
-    {
-        $this->callback = $callback;
-
-        return $this;
-    }
-
-    /**
-     * Get callback
-     * @return ?callable
-     */
-    public final function getCallback(): ?callable
-    {
-        return $this->callback;
+        return $this->arguments[$name] ?? null;
     }
 
     /**
@@ -280,6 +298,24 @@ abstract class AbstractClient
     public final function getMethods(): array
     {
         return self::$methods;
+    }
+
+    /**
+     * Is error.
+     * @return bool
+     */
+    public final function isError(): bool
+    {
+        return $this->error != null;
+    }
+
+    /**
+     * Get error.
+     * @return ?Froq\Http\Client\ClientError
+     */
+    public final function getError(): ?ClientError
+    {
+        return $this->error;
     }
 
     /**
@@ -324,6 +360,28 @@ abstract class AbstractClient
     }
 
     /**
+     * Reset.
+     * @param $end
+     * @return void
+     */
+    public final function reset(bool $end = false): void
+    {
+        if ($end) {
+            $this->request = null;
+            $this->response = null;
+        } else {
+            $this->request = new Request();
+            $this->response = new Response();
+        }
+
+        if ($this->agent != null) {
+            $this->agent->close();
+        }
+
+        $this->result = $this->resultInfo = $this->error = null;
+    }
+
+    /**
      * Ok.
      * @return bool
      */
@@ -364,24 +422,73 @@ abstract class AbstractClient
             && ($statusCode >= 300 && $statusCode <= 399);
     }
 
-    /**
-     * Reset.
-     * @return void
-     */
-    public final function reset(): void
+    protected final function prepareHandleOptions(): array
     {
-        $this->request = new Request();
-        $this->response = new Response();
+        $method = $this->request->getMethod();
+        $body = $this->request->getRawBody();
+        $arguments = $this->getArguments();
 
-        $this->result = $this->resultInfo = null;
+        $curlOptions = [
+            CURLOPT_URL => $this->request->getFullUrl(),
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_HEADER => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_AUTOREFERER => true,
+            CURLOPT_FOLLOWLOCATION => $this->options['redir'],
+            CURLOPT_MAXREDIRS => $this->options['redirMax'],
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_DEFAULT_PROTOCOL => 'http',
+            CURLOPT_DNS_CACHE_TIMEOUT => 3600, // 1 hour
+            CURLOPT_TIMEOUT => $this->options['timeout'],
+            CURLOPT_CONNECTTIMEOUT => $this->options['timeoutConnect'],
+            // CURLOPT_TIMEOUT_MS => $this->options['timeout'], // @debug
+            // CURLOPT_CONNECTTIMEOUT_MS => $this->options['timeoutConnect'], // @debug
+            CURLINFO_HEADER_OUT => true, // request headers
+        ];
+
+        // headers
+        $curlOptions[CURLOPT_HTTPHEADER][] = 'Expect:';
+        foreach ($this->request->getHeaders() as $name => $value) {
+            $curlOptions[CURLOPT_HTTPHEADER][] = sprintf('%s: %s', $name, $value);
+        }
+
+        if ($body !== null) {
+            $curlOptions[CURLOPT_POSTFIELDS] = $body;
+            // @debug these headers should be added automatically by curl
+            // if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            //     $curlOptions[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
+            //     $curlOptions[CURLOPT_HTTPHEADER][] = 'Content-Length: '. strlen((string) $body);
+            // }
+        }
+
+        // user provided options
+        if (isset($arguments['curlOptions'])) {
+            static $notAllowedOptions = [CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST,
+                CURLINFO_HEADER_OUT];
+
+            foreach ($arguments['curlOptions'] as $name => $value) {
+                // these are already set internally
+                if (in_array($name, $notAllowedOptions)) {
+                    throw new ClientException('Not allowed curl option given (not allowed options: '.
+                        'CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST, CURLINFO_HEADER_OUT)');
+                }
+
+                if (is_array($value)) {
+                    foreach ($value as $value) {
+                        $curlOptions[$name][] = $value;
+                    }
+                } else { $curlOptions[$name] = $value; }
+            }
+        }
+
+        return $curlOptions;
     }
 
     /**
      * Send.
-     * @param  string        $url
-     * @param  array|null    $arguments
      * @param  callable|null $callback
      * @return void
      */
-    abstract public function send(string $url, array $arguments = null, callable $callback = null): void;
+    abstract public function send(callable $callback = null): void;
 }

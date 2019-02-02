@@ -26,6 +26,8 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
+use Froq\Http\Client\Agent\Curl;
+
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
@@ -37,27 +39,18 @@ final class Client extends AbstractClient
 {
     /**
      * Send.
-     * @param  string|null $url
-     * @param  array|null  $arguments
-     * @param  callable    $callback
+     * @param  callable $callback
      * @return void
      * @throws Froq\Http\Client\ClientException
      */
-    public function send(string $url = null, array $arguments = null, callable $callback = null): void
+    public function send(callable $callback = null): void
     {
         $this->reset();
 
         // could be given in constructor
-        $url = $url ?? $this->getArgument('url');
+        $url = $this->getArgument('url');
         if ($url == null) {
-            throw new ClientException('No URL given in constructor nor send() method');
-        }
-
-        if ($arguments != null) {
-            $this->setArguments($arguments);
-        }
-        if ($callback != null) {
-            $this->setCallback($callback);
+            throw new ClientException('No valid url given');
         }
 
         [$url, $urlParams] = Util::parseUrl($url);
@@ -93,124 +86,66 @@ final class Client extends AbstractClient
             }
         }
 
-        $method = $this->request->getMethod();
-        $body = $this->request->getRawBody();
+        $this->agent = new Curl($this);
 
-        $curlHandle = curl_init();
-        $curlOptions = [
-            CURLOPT_URL => $this->request->getFullUrl(),
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HEADER => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_AUTOREFERER => true,
-            CURLOPT_FOLLOWLOCATION => $this->options['redir'],
-            CURLOPT_MAXREDIRS => $this->options['redirMax'],
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_DEFAULT_PROTOCOL => 'http',
-            CURLOPT_DNS_CACHE_TIMEOUT => 3600, // 1 hour
-            CURLOPT_TIMEOUT => $this->options['timeout'],
-            CURLOPT_CONNECTTIMEOUT => $this->options['timeoutConnect'],
-            // CURLOPT_TIMEOUT_MS => $this->options['timeout'], // @debug
-            // CURLOPT_CONNECTTIMEOUT_MS => $this->options['timeoutConnect'], // @debug
-            CURLINFO_HEADER_OUT => true, // request headers
-        ];
+        [$result, $resultInfo, $error] = $this->agent->run();
+        if ($error) {
+            $this->error = $error;
+        } else {
+            $this->result = $result;
+            $this->resultInfo = $resultInfo;
 
-        // headers
-        $curlOptions[CURLOPT_HTTPHEADER][] = 'Expect:';
-        foreach ($this->request->getHeaders() as $name => $value) {
-            $curlOptions[CURLOPT_HTTPHEADER][] = sprintf('%s: %s', $name, $value);
-        }
+            $this->agent->close();
 
-        // body
-        if ($body !== null) {
-            $curlOptions[CURLOPT_POSTFIELDS] = $body;
-            // @debug these headers should be added automatically by curl
-            // if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            //     $curlOptions[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
-            //     $curlOptions[CURLOPT_HTTPHEADER][] = 'Content-Length: '. strlen((string) $body);
-            // }
-        }
+            // set request headers
+            if (isset($this->resultInfo['request_header'])) {
+                $this->request->setHeaders(Util::parseHeaders($this->resultInfo['request_header'], false));
+            }
 
-        // user provided options
-        if (isset($arguments['curlOptions'])) {
-            static $notAllowedOptions = [CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST,
-                CURLINFO_HEADER_OUT];
+            $result = explode("\r\n\r\n", $this->result);
+            // drop redirect etc. headers
+            while (count($result) > 2) {
+                array_shift($result);
+            }
 
-            foreach ($arguments['curlOptions'] as $name => $value) {
-                // these are already set internally
-                if (in_array($name, $notAllowedOptions)) {
-                    throw new ClientException('Not allowed curl option given (not allowed options: '.
-                        'CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST, CURLINFO_HEADER_OUT)');
+            // split headers/body parts
+            @ [$headers, $body] = $result;
+
+            if ($headers != null) {
+                $headers = Util::parseHeaders($headers);
+                if (isset($headers[0])) {
+                    $this->response->setStatus($headers[0]);
                 }
 
-                if (is_array($value)) {
-                    foreach ($value as $value) {
-                        $curlOptions[$name][] = $value;
-                    }
-                } else { $curlOptions[$name] = $value; }
+                $this->response->setHeaders($headers);
+            }
+
+            if ($body != null) {
+                $rawBody = $body;
+                $contentEncoding = $this->response->getHeader('Content-Encoding');
+                $contentType = (string) $this->response->getHeader('Content-Type');
+
+                // decode gzip (if zipped)
+                if ($contentEncoding == 'gzip' || (strpos($contentType, '/octet-stream')
+                    && substr($this->request->getUrl(), -3) == '.gz')) {
+                    $body = $rawBody = gzdecode($body);
+                }
+
+                // decode json
+                if (strpos($contentType, '/json') || strpos($contentType, '+json')) {
+                    $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
+                } elseif (strpos($contentType, '/xml')) {
+                    $body = Util::parseXml($body, $arguments['xmlOptions'] ?? []);
+                }
+
+                $this->response->setBody($body)
+                               ->setRawBody($rawBody);
             }
         }
 
-        curl_setopt_array($curlHandle, $curlOptions);
-
-        $this->result = curl_exec($curlHandle);
-        if ($this->result === false) {
-            throw new ClientException(curl_error($curlHandle), curl_errno($curlHandle));
-        }
-
-        $this->resultInfo = curl_getinfo($curlHandle);
-
-        curl_close($curlHandle);
-
-        // set request headers
-        if (isset($this->resultInfo['request_header'])) {
-            $this->request->setHeaders(Util::parseHeaders($this->resultInfo['request_header'], false));
-        }
-
-        $result = explode("\r\n\r\n", $this->result);
-        // drop redirect etc. headers
-        while (count($result) > 2) {
-            array_shift($result);
-        }
-
-        // split headers/body parts
-        @ [$headers, $body] = $result;
-
-        if ($headers != null) {
-            $headers = Util::parseHeaders($headers);
-            if (isset($headers[0])) {
-                $this->response->setStatus($headers[0]);
-            }
-
-            $this->response->setHeaders($headers);
-        }
-
-        if ($body != null) {
-            $rawBody = $body;
-            $contentEncoding = $this->response->getHeader('Content-Encoding');
-            $contentType = (string) $this->response->getHeader('Content-Type');
-
-            // decode gzip (if zipped)
-            if ($contentEncoding == 'gzip' || (strpos($contentType, '/octet-stream')
-                && substr($this->request->getUrl(), -3) == '.gz')) {
-                $body = $rawBody = gzdecode($body);
-            }
-
-            // decode json
-            if (strpos($contentType, '/json') || strpos($contentType, '+json')) {
-                $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
-            } elseif (strpos($contentType, '/xml')) {
-                $body = Util::parseXml($body, $arguments['xmlOptions'] ?? []);
-            }
-
-            $this->response->setBody($body)
-                           ->setRawBody($rawBody);
-        }
-
-        $callback = $this->getCallback();
+        $callback = $callback ?? $this->getCallback();
         if ($callback != null) {
-            $callback($this->request, $this->response);
+            $callback($this->request, $this->response, $this->error);
         }
     }
 }
