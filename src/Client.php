@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
-use Froq\Http\Client\Agent\{Curl, CurlAsync};
+use Froq\Http\Client\Agent\Agent;
 
 /**
  * @package    Froq
@@ -37,6 +37,19 @@ use Froq\Http\Client\Agent\{Curl, CurlAsync};
  */
 final class Client extends AbstractClient
 {
+    /**
+     * Constructor.
+     * @param string        $url
+     * @param array|null    $options
+     * @param array|null    $arguments
+     * @param callable|null $callback
+     */
+    public function __construct(string $url, array $options = null, array $arguments = null,
+        callable $callback = null)
+    {
+        parent::__construct($url, $options, $arguments, $callback);
+    }
+
     /**
      * Send.
      * @param  callable $callback
@@ -49,8 +62,10 @@ final class Client extends AbstractClient
 
         $this->processPreSend();
 
-        $this->setAgent(new Curl($this));
-        $this->setAgentType('curl');
+        // $type = $this->async() ? 'curlmulti' : 'curl';
+        $type = 'curl';
+        $this->setAgent(Agent::init($type, $this));
+        $this->setAgentType($type);
 
         $this->processPostSend();
 

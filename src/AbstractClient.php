@@ -38,6 +38,12 @@ use Froq\Http\Client\Agent\Agent;
 abstract class AbstractClient
 {
     /**
+     * Async.
+     * @var bool
+     */
+    protected $async;
+
+    /**
      * Request.
      * @var Froq\Http\Client\Request
      */
@@ -112,15 +118,18 @@ abstract class AbstractClient
 
     /**
      * Constructor.
-     * @param string     $url
-     * @param array|null $options
-     * @param array|null $arguments
+     * @param string        $url
+     * @param array|null    $options
+     * @param array|null    $arguments
+     * @param callable|null $callback
      */
-    public final function __construct(string $url, array $options = null, array $arguments = null)
+    public function __construct(string $url, array $options = null, array $arguments = null,
+        callable $callback = null)
     {
-        $this->setArgument('url', $url);
-        $options && $this->setOptions($options);
+        $this->setUrl($url);
+        $options   && $this->setOptions($options);
         $arguments && $this->setArguments($arguments);
+        $callback  && $this->setCallback($callback);
     }
 
     /**
@@ -149,6 +158,19 @@ abstract class AbstractClient
         $callback = $funcArgs[0] ?? null;
 
         return $this->setMethod($method)->send($callback);
+    }
+
+    /**
+     * Async.
+     * @param  bool|null $option
+     * @return bool
+     */
+    public final function async(bool $option = null): bool
+    {
+        if ($option !== null) {
+            $this->async = $option;
+        }
+        return $this->async;
     }
 
     /**
@@ -384,6 +406,16 @@ abstract class AbstractClient
     }
 
     /**
+     * Set url.
+     * @param  string $url
+     * @return self
+     */
+    public final function setUrl(string $url): self
+    {
+        return $this->setArgument('url', $url);
+    }
+
+    /**
      * Set method.
      * @param  string $method
      * @return self
@@ -440,6 +472,7 @@ abstract class AbstractClient
 
         if ($this->agent != null) {
             $this->agent->close();
+            $this->agent = null;
         }
 
         $this->result = $this->resultInfo = $this->error = null;

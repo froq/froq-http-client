@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client\Agent;
 
-use Froq\Http\Client\Client;
+use Froq\Http\Client\AbstractClient;
 
 /**
  * @package    Froq
@@ -42,9 +42,33 @@ abstract class Agent
     protected $handle;
     protected $handleType;
 
-    public function __construct(Client $client)
+    public function __construct(AbstractClient $client)
     {
         $this->client = $client;
+    }
+
+    public final function getClient(): AbstractClient
+    {
+        return $this->client;
+    }
+    public final function getHandle()
+    {
+        return $this->handle;
+    }
+    public final function getHandleType()
+    {
+        return $this->handleType;
+    }
+
+    public static final function init(string $type, AbstractClient $client)
+    {
+        switch ($type) {
+            case 'curl': return new Curl($client);
+            case 'curlmulti': return new CurlMulti($client);
+            case 'fsock': return new FSock($client);
+            default:
+                throw new AgentException("Unknown type '{$type}' given");
+        }
     }
 
     public final function close(): void
@@ -52,6 +76,8 @@ abstract class Agent
         if ($this->handle) {
             if ($this->handleType == 'curl') {
                 curl_close($this->handle);
+            } elseif ($this->handleType == 'curlmulti') {
+                curl_multi_close($this->handle);
             } elseif ($this->handleType == 'fsock') {
                 fclose($this->handle);
             }
@@ -59,16 +85,71 @@ abstract class Agent
         }
     }
 
-    public static final function init(string $type, Client $client)
+    public final function options(): array
     {
-        switch ($type) {
-            case 'curl': return new Curl($client);
-            case 'fsock': return new FSock($client);
-            default:
-                throw new AgentException("Unknown type '{$type}' given");
+        $request = $this->client->getRequest();
+
+        [$method, $url, $body, $options, $arguments] = [
+            $request->getMethod(), $request->getFullUrl(), $request->getRawBody(),
+            $this->client->getOptions(), $this->client->getArguments(),
+        ];
+
+        $options = [
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_URL => $url,
+            CURLOPT_HEADER => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_AUTOREFERER => true,
+            CURLOPT_FOLLOWLOCATION => $options['redir'],
+            CURLOPT_MAXREDIRS => $options['redirMax'],
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_DEFAULT_PROTOCOL => 'http',
+            CURLOPT_DNS_CACHE_TIMEOUT => 3600, // 1 hour
+            CURLOPT_TIMEOUT => $options['timeout'],
+            CURLOPT_CONNECTTIMEOUT => $options['timeoutConnect'],
+            // CURLOPT_TIMEOUT_MS => $options['timeout'], // @debug
+            // CURLOPT_CONNECTTIMEOUT_MS => $options['timeoutConnect'], // @debug
+            CURLINFO_HEADER_OUT => true, // request headers
+        ];
+
+        // headers
+        $options[CURLOPT_HTTPHEADER][] = 'Expect:';
+        foreach ($request->getHeaders() as $name => $value) {
+            $options[CURLOPT_HTTPHEADER][] = sprintf('%s: %s', $name, $value);
         }
+
+        if ($body !== null) {
+            $options[CURLOPT_POSTFIELDS] = $body;
+            // @debug these headers should be added automatically by curl
+            // if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            //     $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
+            //     $options[CURLOPT_HTTPHEADER][] = 'Content-Length: '. strlen((string) $body);
+            // }
+        }
+
+        // user provided options
+        if (isset($arguments['curlOptions'])) {
+            static $notAllowedOptions = [CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST,
+                CURLINFO_HEADER_OUT];
+
+            foreach ($arguments['curlOptions'] as $name => $value) {
+                // these are already set internally
+                if (in_array($name, $notAllowedOptions)) {
+                    throw new AgentException('Not allowed curl option given (not allowed options: '.
+                        'CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST, CURLINFO_HEADER_OUT)');
+                }
+
+                if (is_array($value)) {
+                    foreach ($value as $value) {
+                        $options[$name][] = $value;
+                    }
+                } else { $options[$name] = $value; }
+            }
+        }
+
+        return $options;
     }
 
     abstract public function run(): array;
-    abstract protected function options(): array;
 }
