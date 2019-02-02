@@ -51,12 +51,12 @@ final /* static */ class Util
         }
 
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            throw new UtilException("No valid url given (url: '{$url}'");
+            throw new UtilException("No valid url given (url: {$url})");
         }
 
         $parsedUrl = parse_url($url);
         if (empty($parsedUrl['host'])) {
-            throw new UtilException("No host found in given url (url: '{$url}'");
+            throw new UtilException("No host found in given url (url: {$url})");
         }
 
         $authority = '';
