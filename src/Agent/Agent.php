@@ -31,11 +31,11 @@ use Froq\Http\Client\Client;
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client\Agent
- * @object     Froq\Http\Client\Agent\AbstractAgent
+ * @object     Froq\Http\Client\Agent\Agent
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-abstract class AbstractAgent
+abstract class Agent
 {
     protected $client;
 
@@ -44,9 +44,9 @@ abstract class AbstractAgent
 
     public function __construct(Client $client)
     {
-        // $this->client = $client;
+        $this->client = $client;
     }
-    public static $i=0;
+
     public final function close(): void
     {
         if ($this->handle) {
@@ -56,6 +56,16 @@ abstract class AbstractAgent
                 fclose($this->handle);
             }
             $this->handle = $this->handleType = null;
+        }
+    }
+
+    public static final function init(string $type, Client $client)
+    {
+        switch ($type) {
+            case 'curl': return new Curl($client);
+            case 'fsock': return new FSock($client);
+            default:
+                throw new AgentException("Unknown type '{$type}' given");
         }
     }
 
