@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
-use Froq\Http\Client\Agent\Curl;
+use Froq\Http\Client\Agent\{Curl, CurlAsync};
 
 /**
  * @package    Froq
@@ -40,112 +40,25 @@ final class Client extends AbstractClient
     /**
      * Send.
      * @param  callable $callback
-     * @return void
+     * @return Froq\Http\Client\Response
      * @throws Froq\Http\Client\ClientException
      */
-    public function send(callable $callback = null): void
+    public function send(callable $callback = null): Response
     {
         $this->reset();
 
-        // could be given in constructor
-        $url = $this->getArgument('url');
-        if ($url == null) {
-            throw new ClientException('No valid url given');
-        }
+        $this->processPreSend();
 
-        [$url, $urlParams] = Util::parseUrl($url);
-        $this->request->setUrl($url)
-                      ->setUrlParams($urlParams);
+        $this->setAgent(new Curl($this));
+        $this->setAgentType('curl');
 
-        $arguments = $this->getArguments();
-        if (!empty($arguments)) {
-            $this->request->setMethod($arguments['method']);
-
-            if (isset($arguments['headers'])) {
-                $this->request->setHeaders($arguments['headers']);
-            }
-            if (isset($arguments['urlParams'])) {
-                $this->request->setUrlParams($arguments['urlParams']);
-            }
-
-            // body accepted for all methods..
-            // @see https://stackoverflow.com/questions/978061/http-get-with-request-body
-            $body = $arguments['body'] ?? null;
-            if ($body !== null) {
-                $rawBody = $body;
-                $bodyType = gettype($body);
-                if ($bodyType == 'array' || $bodyType == 'object') {
-                    $contentType = (string) $this->request->getHeader('Content-Type');
-                    $rawBody = strpos($contentType, '/json') || strpos($contentType, '+json')
-                        ? Util::jsonEncode($rawBody, $arguments['jsonOptions'] ?? [])
-                        : Util::buildQuery($rawBody);
-                }
-
-                $this->request->setBody($body)
-                              ->setRawBody($rawBody);
-            }
-        }
-
-        $this->agent = new Curl($this);
-
-        [$result, $resultInfo, $error] = $this->agent->run();
-        if ($error) {
-            $this->error = $error;
-        } else {
-            $this->result = $result;
-            $this->resultInfo = $resultInfo;
-
-            $this->agent->close();
-
-            // set request headers
-            if (isset($this->resultInfo['request_header'])) {
-                $this->request->setHeaders(Util::parseHeaders($this->resultInfo['request_header'], false));
-            }
-
-            $result = explode("\r\n\r\n", $this->result);
-            // drop redirect etc. headers
-            while (count($result) > 2) {
-                array_shift($result);
-            }
-
-            // split headers/body parts
-            @ [$headers, $body] = $result;
-
-            if ($headers != null) {
-                $headers = Util::parseHeaders($headers);
-                if (isset($headers[0])) {
-                    $this->response->setStatus($headers[0]);
-                }
-
-                $this->response->setHeaders($headers);
-            }
-
-            if ($body != null) {
-                $rawBody = $body;
-                $contentEncoding = $this->response->getHeader('Content-Encoding');
-                $contentType = (string) $this->response->getHeader('Content-Type');
-
-                // decode gzip (if zipped)
-                if ($contentEncoding == 'gzip' || (strpos($contentType, '/octet-stream')
-                    && substr($this->request->getUrl(), -3) == '.gz')) {
-                    $body = $rawBody = gzdecode($body);
-                }
-
-                // decode json
-                if (strpos($contentType, '/json') || strpos($contentType, '+json')) {
-                    $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
-                } elseif (strpos($contentType, '/xml')) {
-                    $body = Util::parseXml($body, $arguments['xmlOptions'] ?? []);
-                }
-
-                $this->response->setBody($body)
-                               ->setRawBody($rawBody);
-            }
-        }
+        $this->processPostSend();
 
         $callback = $callback ?? $this->getCallback();
         if ($callback != null) {
             $callback($this->request, $this->response, $this->error);
         }
+
+        return $this->response;
     }
 }

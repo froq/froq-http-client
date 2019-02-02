@@ -26,6 +26,8 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
+use Froq\Http\Client\Agent\Agent;
+
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
@@ -98,9 +100,15 @@ abstract class AbstractClient
 
     /**
      * Agent.
-     * @var Froq\Http\Client\Agent\AgentInterface
+     * @var Froq\Http\Client\Agent\Agent
      */
     protected $agent;
+
+    /**
+     * Agent type.
+     * @var string
+     */
+    protected $agentType;
 
     /**
      * Constructor.
@@ -125,21 +133,22 @@ abstract class AbstractClient
 
     /**
      * Call magic.
-     * @param  string $method
-     * @param  array  $methodArguments
-     * @return void
+     * @param  string $func
+     * @param  array  $funcArgs
+     * @return Froq\Http\Client\Response
      * @throws Froq\Http\Client\ClientException
      */
-    public final function __call(string $method, array $methodArguments): void
+    public final function __call(string $func, array $funcArgs): Response
     {
-        if (!in_array($method, self::$methods)) {
+        if (!in_array($func, self::$methods)) {
             throw new ClientException(sprintf("No method '%s' found (callable methods: %s)",
-                $method, join(',', self::$methods)));
+                $func, join(',', self::$methods)));
         }
 
-        $methodArguments[1] = $methodArguments[1] ?? [];
-        $methodArguments[1]['method'] = $method; // request method actually
-        call_user_func_array([$this, 'send'], $methodArguments);
+        $method = $func;
+        $callback = $funcArgs[0] ?? null;
+
+        return $this->setMethod($method)->send($callback);
     }
 
     /**
@@ -319,14 +328,69 @@ abstract class AbstractClient
     }
 
     /**
+     * Set agent.
+     * @param  Froq\Http\Client\Agent\Agent $agent
+     * @return self
+     */
+    public final function setAgent(Agent $agent): self
+    {
+        $this->agent = $agent;
+
+        return $this;
+    }
+
+    /**
+     * Get agent.
+     * @return Froq\Http\Client\Agent\Agent
+     */
+    public final function getAgent(): Agent
+    {
+        return $this->agent;
+    }
+
+    /**
+     * Set agent type.
+     * @param  string $agentType
+     * @return self
+     */
+    public final function setAgentType(string $agentType): self
+    {
+        $this->agentType = $agentType;
+
+        return $this;
+    }
+
+    /**
+     * Get agent type.
+     * @return string
+     */
+    public final function getAgentType(): string
+    {
+        return $this->agentType;
+    }
+
+    /**
      * Add header.
      * @param  string  $name
      * @param  ?string $value
      * @return self
      */
-    public function addHeader(string $name, ?string $value): self
+    public final function addHeader(string $name, ?string $value): self
     {
+        if (strtolower($name) == 'host') {
+            throw new ClientException('You cannot set Host header');
+        }
         return $this->setArgument('headers', [$name => $value]);
+    }
+
+    /**
+     * Set method.
+     * @param  string $method
+     * @return self
+     */
+    public final function setMethod(string $method): self
+    {
+        return $this->setArgument('method', $method);
     }
 
     /**
@@ -422,73 +486,119 @@ abstract class AbstractClient
             && ($statusCode >= 300 && $statusCode <= 399);
     }
 
-    protected final function prepareHandleOptions(): array
+    /**
+     * Process pre-send.
+     * @return void
+     */
+    protected final function processPreSend(): void
     {
-        $method = $this->request->getMethod();
-        $body = $this->request->getRawBody();
+        // could be given in constructor
+        $url = $this->getArgument('url');
+        if ($url == null) {
+            throw new ClientException('No valid url given');
+        }
+
+        [$url, $urlParams] = Util::parseUrl($url);
+        $this->request->setUrl($url)
+                      ->setUrlParams($urlParams);
+
         $arguments = $this->getArguments();
+        if (!empty($arguments)) {
+            $this->request->setMethod($arguments['method']);
 
-        $curlOptions = [
-            CURLOPT_URL => $this->request->getFullUrl(),
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HEADER => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_AUTOREFERER => true,
-            CURLOPT_FOLLOWLOCATION => $this->options['redir'],
-            CURLOPT_MAXREDIRS => $this->options['redirMax'],
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_DEFAULT_PROTOCOL => 'http',
-            CURLOPT_DNS_CACHE_TIMEOUT => 3600, // 1 hour
-            CURLOPT_TIMEOUT => $this->options['timeout'],
-            CURLOPT_CONNECTTIMEOUT => $this->options['timeoutConnect'],
-            // CURLOPT_TIMEOUT_MS => $this->options['timeout'], // @debug
-            // CURLOPT_CONNECTTIMEOUT_MS => $this->options['timeoutConnect'], // @debug
-            CURLINFO_HEADER_OUT => true, // request headers
-        ];
+            if (isset($arguments['headers'])) {
+                $this->request->setHeaders($arguments['headers']);
+            }
+            if (isset($arguments['urlParams'])) {
+                $this->request->setUrlParams($arguments['urlParams']);
+            }
 
-        // headers
-        $curlOptions[CURLOPT_HTTPHEADER][] = 'Expect:';
-        foreach ($this->request->getHeaders() as $name => $value) {
-            $curlOptions[CURLOPT_HTTPHEADER][] = sprintf('%s: %s', $name, $value);
-        }
-
-        if ($body !== null) {
-            $curlOptions[CURLOPT_POSTFIELDS] = $body;
-            // @debug these headers should be added automatically by curl
-            // if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            //     $curlOptions[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
-            //     $curlOptions[CURLOPT_HTTPHEADER][] = 'Content-Length: '. strlen((string) $body);
-            // }
-        }
-
-        // user provided options
-        if (isset($arguments['curlOptions'])) {
-            static $notAllowedOptions = [CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST,
-                CURLINFO_HEADER_OUT];
-
-            foreach ($arguments['curlOptions'] as $name => $value) {
-                // these are already set internally
-                if (in_array($name, $notAllowedOptions)) {
-                    throw new ClientException('Not allowed curl option given (not allowed options: '.
-                        'CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST, CURLINFO_HEADER_OUT)');
+            // body accepted for all methods..
+            // @see https://stackoverflow.com/questions/978061/http-get-with-request-body
+            $body = $arguments['body'] ?? null;
+            if ($body !== null) {
+                $rawBody = $body;
+                $bodyType = gettype($body);
+                if ($bodyType == 'array' || $bodyType == 'object') {
+                    $contentType = (string) $this->request->getHeader('Content-Type');
+                    $rawBody = strpos($contentType, '/json') || strpos($contentType, '+json')
+                        ? Util::jsonEncode($rawBody, $arguments['jsonOptions'] ?? [])
+                        : Util::buildQuery($rawBody);
                 }
 
-                if (is_array($value)) {
-                    foreach ($value as $value) {
-                        $curlOptions[$name][] = $value;
-                    }
-                } else { $curlOptions[$name] = $value; }
+                $this->request->setBody($body)
+                              ->setRawBody($rawBody);
+            }
+        }
+    }
+
+    /**
+     * Process post-send.
+     * @return void
+     */
+    protected final function processPostSend(): void
+    {
+        [$result, $resultInfo, $error] = $this->agent->run();
+        if ($error) {
+            $this->error = $error;
+        } else {
+            $this->result = $result;
+            $this->resultInfo = $resultInfo;
+
+            // set request headers
+            if (isset($this->resultInfo['request_header'])) {
+                $this->request->setHeaders(Util::parseHeaders($this->resultInfo['request_header'], false));
+            }
+
+            $result = explode("\r\n\r\n", $this->result);
+            // drop redirect etc. headers
+            while (count($result) > 2) {
+                array_shift($result);
+            }
+
+            // split headers/body parts
+            @ [$headers, $body] = $result;
+
+            if ($headers != null) {
+                $headers = Util::parseHeaders($headers);
+                if (isset($headers[0])) {
+                    $this->response->setStatus($headers[0]);
+                }
+
+                $this->response->setHeaders($headers);
+            }
+
+            if ($body != null) {
+                $rawBody = $body;
+                $contentEncoding = $this->response->getHeader('Content-Encoding');
+                $contentType = (string) $this->response->getHeader('Content-Type');
+
+                // decode gzip (if zipped)
+                if ($contentEncoding == 'gzip' || (strpos($contentType, '/octet-stream')
+                    && substr($this->request->getUrl(), -3) == '.gz')) {
+                    $body = $rawBody = gzdecode($body);
+                }
+
+                // decode json
+                if (strpos($contentType, '/json') || strpos($contentType, '+json')) {
+                    $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
+                } elseif (strpos($contentType, '/xml')) {
+                    $body = Util::parseXml($body, $arguments['xmlOptions'] ?? []);
+                }
+
+                $this->response->setBody($body)
+                               ->setRawBody($rawBody);
             }
         }
 
-        return $curlOptions;
+        $this->agent->close();
     }
 
     /**
      * Send.
      * @param  callable|null $callback
-     * @return void
+     * @return Froq\Http\Client\Response
+     * @throws Froq\Http\Client\ClientException
      */
-    abstract public function send(callable $callback = null): void;
+    abstract public function send(callable $callback = null): Response;
 }

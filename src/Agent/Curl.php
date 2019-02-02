@@ -35,19 +35,20 @@ use Froq\Http\Client\Client;
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-final class Curl extends AbstractAgent
+final class Curl extends Agent
 {
     public function __construct(Client $client)
     {
-        // parent::__construct($client);
-        $this->client = $client;
+        parent::__construct($client);
+
         $this->handle = curl_init();
         $this->handleType = 'curl';
-        curl_setopt_array($this->handle, $this->options());
     }
 
     public function run(): array
     {
+        curl_setopt_array($this->handle, $this->options());
+
         $result =@ curl_exec($this->handle);
         if ($result === false) {
             return [null, null, new ClientError(curl_error($this->handle), curl_errno($this->handle))];
@@ -106,7 +107,7 @@ final class Curl extends AbstractAgent
             foreach ($arguments['curlOptions'] as $name => $value) {
                 // these are already set internally
                 if (in_array($name, $notAllowedOptions)) {
-                    throw new ClientException('Not allowed curl option given (not allowed options: '.
+                    throw new AgentException('Not allowed curl option given (not allowed options: '.
                         'CURLOPT_URL, CURLOPT_HEADER, CURLOPT_CUSTOMREQUEST, CURLINFO_HEADER_OUT)');
                 }
 
