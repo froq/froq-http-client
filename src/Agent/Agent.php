@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client\Agent;
 
-use Froq\Http\Client\AbstractClient;
+use Froq\Http\Client\Client;
 
 /**
  * @package    Froq
@@ -37,20 +37,20 @@ use Froq\Http\Client\AbstractClient;
  */
 abstract class Agent
 {
-    protected $client;
-
     protected $handle;
     protected $handleType;
 
-    public function __construct(AbstractClient $client)
+    /**
+     * Constructor.
+     * @param resource $handle
+     * @param string   $handleType
+     */
+    public function __construct($handle, string $handleType)
     {
-        $this->client = $client;
+        $this->handle = $handle;
+        $this->handleType = $handleType;
     }
 
-    public final function getClient(): AbstractClient
-    {
-        return $this->client;
-    }
     public final function getHandle()
     {
         return $this->handle;
@@ -60,7 +60,7 @@ abstract class Agent
         return $this->handleType;
     }
 
-    public static final function init(string $type, AbstractClient $client)
+    public static final function init(string $type, Client $client): Agent
     {
         switch ($type) {
             case 'curl': return new Curl($client);
@@ -71,27 +71,18 @@ abstract class Agent
         }
     }
 
-    public final function close(): void
+    public final function applyCurlOptions(): void
     {
-        if ($this->handle) {
-            if ($this->handleType == 'curl') {
-                curl_close($this->handle);
-            } elseif ($this->handleType == 'curlmulti') {
-                curl_multi_close($this->handle);
-            } elseif ($this->handleType == 'fsock') {
-                fclose($this->handle);
-            }
-            $this->handle = $this->handleType = null;
+        if ($this->handle == null) {
+            throw new AgentException('No curl handle yet to apply options');
         }
-    }
 
-    public final function options(): array
-    {
         $request = $this->client->getRequest();
+        // prd($this->client,1);
 
-        [$method, $url, $body, $options, $arguments] = [
-            $request->getMethod(), $request->getFullUrl(), $request->getRawBody(),
-            $this->client->getOptions(), $this->client->getArguments(),
+        [$method, $url, $headers, $body, $options, $arguments] = [
+            $request->getMethod(), $request->getFullUrl(), $request->getHeaders(),
+            $request->getRawBody(), $this->client->getOptions(), $this->client->getArguments()
         ];
 
         $options = [
@@ -115,7 +106,7 @@ abstract class Agent
 
         // headers
         $options[CURLOPT_HTTPHEADER][] = 'Expect:';
-        foreach ($request->getHeaders() as $name => $value) {
+        foreach ($headers as $name => $value) {
             $options[CURLOPT_HTTPHEADER][] = sprintf('%s: %s', $name, $value);
         }
 
@@ -148,8 +139,8 @@ abstract class Agent
             }
         }
 
-        return $options;
+        curl_setopt_array($this->handle, $options);
     }
 
-    abstract public function run(): array;
+    abstract public function run(): void;
 }

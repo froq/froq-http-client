@@ -37,69 +37,109 @@ use Froq\Http\Client\{Client, ClientError};
  */
 final class CurlMulti extends Agent
 {
-    protected $handles;
+    protected $clients;
 
-    public function __construct(Client $client)
+    public function __construct()
     {
         if (!extension_loaded('curl')) {
             throw new AgentException('curl module not found');
         }
 
-        parent::__construct($client);
-
-        $this->handle = curl_multi_init();
-        $this->handleType = 'curlmulti';
+        parent::__construct(curl_multi_init(), 'curlmulti');
     }
 
-    public function run(): array
+    public function setClients(array $clients): self
     {
-        $done = [];
-        $aaa = [];
+        foreach ($clients as $client) {
+            if (!$client instanceof Client) {
+                throw new AgentException('Each client must be instance of Froq\Http\Client\Client');
+            }
+            $this->clients[] = $client;
+        }
 
-        foreach ($this->handles as $handle) {
-            curl_setopt_array($handle, $handle->options());
+        return $this;
+    }
+    public function getClients(): ?array
+    {
+        return $this->clients;
+    }
+
+    public function run(): void
+    {
+        $clients = [];
+
+        foreach ((array) $this->getclients() as $client) {
+            $client->reset();
+            $client->processPreSend();
+
+            $agent = $client->getAgent();
+            $agent->applyCurlOptions();
+
+            $handle = $agent->getHandle();
 
             $error = curl_multi_add_handle($this->handle, $handle);
             if ($error) {
                 throw new AgentException(curl_multi_strerror($error), $error);
             }
+
+            $clients[(int) $handle] = $client; // tick
         }
 
-        // $resource = $handle->getHandle();
-        // $resourceId = (int) $resource;
-        // if (!isset($done[$resourceId])) {
-        //     $timeout = (float) $handle->getClient()->getOption('timeout');
-        //     if (curl_multi_select($this->handle, $timeout) == -1) {
-        //         usleep(1);
-        //     }
-        //     while (curl_multi_exec($this->handle, $running) == CURLM_CALL_MULTI_PERFORM)
-        //     {}
+        $exec = function ($handle, &$running) {
+            do {
+                $code = curl_multi_exec($handle, $running);
+            } while ($code == CURLM_CALL_MULTI_PERFORM);
 
-        //     while ($info = curl_multi_info_read($this->handle)) {
-        //         if ($info['msg'] == CURLMSG_DONE) {
-        //             $done[(int) $info['handle']] = true;
-        //         }
-        //     }
-        //     $aaa[$resourceId] = curl_multi_getcontent($resource);
-        // }
+            return $code;
+        };
 
-        $active = null;
+        // start requests
+        $exec($this->handle, $running);
+
         do {
-            $mrc = curl_multi_exec($this->handle, $active);
-        } while ($mrc == CURLM_CALL_MULTI_PERFORM);
-
-        while ($active && $mrc == CURLM_OK) {
+            // fail?
             if (curl_multi_select($this->handle) == -1) {
                 usleep(1);
             }
 
-            do {
-                $mrc = curl_multi_exec($this->handle, $active);
-            } while ($mrc == CURLM_CALL_MULTI_PERFORM);
-        }
+            // get new state
+            $exec($this->handle, $running);
 
-        foreach ($this->handles as $handle) {
-            curl_multi_remove_handle($this->handle, $handle);
+            while ($info = curl_multi_info_read($this->handle)) {
+                $client = $clients[(int) $info['handle']] ?? null;
+                if ($client == null) {
+                    continue;
+                }
+                $handle = $info['handle'];
+                if ($handle != $client->getAgent()->getHandle()) {
+                    continue;
+                }
+
+                $ok = ($info['result'] == CURLE_OK && $info['msg'] == CURLMSG_DONE);
+
+                $error = null;
+                $result = $ok ? curl_multi_getcontent($handle) : null;
+                $resultInfo = null;
+                if ($ok) {
+                    if (strpos($result, "\r\n\r\n") === false) {
+                        $result .= "\r\n\r\n";
+                    }
+                    $resultInfo = curl_getinfo($handle);
+                } else {
+                    $error = new ClientError(curl_error($handle), $info['result']);
+                }
+
+                $client->processPostSend([$result, $resultInfo, $error]);
+
+                $callback = $client->getCallback();
+                if ($callback != null) {
+                    $callback($client->getRequest(), $client->getResponse(), $client->getError());
+                }
+            }
+        } while ($running);
+
+        foreach ($clients as $client) {
+            curl_close($client->getAgent()->getHandle());
         }
         curl_multi_close($this->handle);
     }

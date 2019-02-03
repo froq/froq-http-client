@@ -137,7 +137,7 @@ abstract class AbstractClient
      */
     public final function __destruct()
     {
-        $this->reset(true);
+        $this->agent = $agentType = null;
     }
 
     /**
@@ -170,7 +170,7 @@ abstract class AbstractClient
         if ($option !== null) {
             $this->async = $option;
         }
-        return $this->async;
+        return !!$this->async;
     }
 
     /**
@@ -228,6 +228,9 @@ abstract class AbstractClient
      */
     public final function getCallback(): ?callable
     {
+        // if ($this->callback != null) {
+        //     $this->callback = \Closure::bind($this->callback, $this);
+        // }
         return $this->callback;
     }
 
@@ -363,9 +366,9 @@ abstract class AbstractClient
 
     /**
      * Get agent.
-     * @return Froq\Http\Client\Agent\Agent
+     * @return ?Froq\Http\Client\Agent\Agent
      */
-    public final function getAgent(): Agent
+    public final function getAgent(): ?Agent
     {
         return $this->agent;
     }
@@ -456,29 +459,6 @@ abstract class AbstractClient
     }
 
     /**
-     * Reset.
-     * @param $end
-     * @return void
-     */
-    public final function reset(bool $end = false): void
-    {
-        if ($end) {
-            $this->request = null;
-            $this->response = null;
-        } else {
-            $this->request = new Request();
-            $this->response = new Response();
-        }
-
-        if ($this->agent != null) {
-            $this->agent->close();
-            $this->agent = null;
-        }
-
-        $this->result = $this->resultInfo = $this->error = null;
-    }
-
-    /**
      * Ok.
      * @return bool
      */
@@ -523,7 +503,7 @@ abstract class AbstractClient
      * Process pre-send.
      * @return void
      */
-    protected final function processPreSend(): void
+    public final function processPreSend(): void
     {
         // could be given in constructor
         $url = $this->getArgument('url');
@@ -567,11 +547,12 @@ abstract class AbstractClient
 
     /**
      * Process post-send.
+     * @param  Froq\Http\Client\Agent\Agent $agent
      * @return void
      */
-    protected final function processPostSend(): void
+    public final function processPostSend($arguments): void
     {
-        [$result, $resultInfo, $error] = $this->agent->run();
+        [$result, $resultInfo, $error] = $arguments;
         if ($error) {
             $this->error = $error;
         } else {
@@ -579,8 +560,9 @@ abstract class AbstractClient
             $this->resultInfo = $resultInfo;
 
             // set request headers
-            if (isset($this->resultInfo['request_header'])) {
-                $this->request->setHeaders(Util::parseHeaders($this->resultInfo['request_header'], false));
+            $headers =@ $this->resultInfo['request_header'];
+            if ($headers != null) {
+                $this->request->setHeaders(Util::parseHeaders($headers, false));
             }
 
             $result = explode("\r\n\r\n", $this->result);
@@ -590,7 +572,7 @@ abstract class AbstractClient
             }
 
             // split headers/body parts
-            @ [$headers, $body] = $result;
+            [$headers, $body] = $result;
 
             if ($headers != null) {
                 $headers = Util::parseHeaders($headers);
@@ -623,15 +605,17 @@ abstract class AbstractClient
                                ->setRawBody($rawBody);
             }
         }
-
-        $this->agent->close();
     }
 
     /**
-     * Send.
-     * @param  callable|null $callback
-     * @return Froq\Http\Client\Response
-     * @throws Froq\Http\Client\ClientException
+     * Reset.
+     * @return void
      */
-    abstract public function send(callable $callback = null): Response;
+    public final function reset(): void
+    {
+        $this->request = new Request();
+        $this->response = new Response();
+
+        $this->result = $this->resultInfo = $this->error = null;
+    }
 }

@@ -79,11 +79,37 @@ final class Queue implements Sizable, \IteratorAggregate
         return $this->addItem($client);
     }
 
-    public function perform()
+    public function perform(): array
     {
-        foreach ($this->items as $client) {
-            $client->send();
+        $items = array_filter($this->items, function ($item) {
+            return !$item->async();
+        });
+        $itemsAsync = array_filter($this->items, function ($item) {
+            return $item->async();
+        });
+
+        $i = 0;
+        $ret = [];
+        if ($items != null) {
+            foreach ($items as $item) {
+                $ret[$i++] = $item->send();
+            }
         }
+        if ($itemsAsync != null) {
+            $itemsAsync = Client::sendAsync($itemsAsync);
+            foreach ($itemsAsync as $item) {
+                // pre($item,1);
+                $ret[$i++] = $item;
+            }
+        }
+
+        // prd(get_resources());
+        // foreach (get_resources() as $r) {
+        //     $rt = get_resource_type($r);
+        //     prs($rt);
+        // }
+
+        return $ret;
     }
 
     public function isEmpty(): bool

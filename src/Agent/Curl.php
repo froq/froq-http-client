@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client\Agent;
 
-use Froq\Http\Client\{AbstractClient, ClientError};
+use Froq\Http\Client\{Client, ClientError};
 
 /**
  * @package    Froq
@@ -37,26 +37,61 @@ use Froq\Http\Client\{AbstractClient, ClientError};
  */
 final class Curl extends Agent
 {
-    public function __construct(AbstractClient $client)
+    protected $client;
+
+    public function __construct()
     {
         if (!extension_loaded('curl')) {
             throw new AgentException('curl module not found');
         }
 
-        parent::__construct($client);
-
-        $this->handle = curl_init();
-        $this->handleType = 'curl';
+        parent::__construct(curl_init(), 'curl');
     }
 
-    public function run(): array
+    public final function setClient(Client $client): self
     {
-        curl_setopt_array($this->handle, $this->options());
+        $this->client = $client;
+        return $this;
+    }
+    public final function getClient(): ?Client
+    {
+        return $this->client;
+    }
 
-        $result =@ curl_exec($this->handle);
-        if ($result === false) {
-            return [null, null, new ClientError(curl_error($this->handle), curl_errno($this->handle))];
+    public function run(): void
+    {
+        $client = $this->getClient();
+        if ($client == null) {
+            throw new AgentException('No client initiated yet');
         }
-        return [$result, curl_getinfo($this->handle), null];
+
+        $client->reset();
+        $client->processPreSend();
+
+        $agent = $client->getAgent();
+        $agent->applyCurlOptions();
+
+        $handle = $agent->getHandle();
+
+        $error = null;
+        $result =@ curl_exec($handle);
+        $resultInfo = null;
+        if ($result !== false) {
+            if (strpos($result, "\r\n\r\n") === false) {
+                $result .= "\r\n\r\n";
+            }
+            $resultInfo = curl_getinfo($handle);
+        } else {
+            $error = new ClientError(curl_error($handle), curl_errno($handle));
+        }
+
+        $client->processPostSend([$result, $resultInfo, $error]);
+
+        $callback = $client->getCallback();
+        if ($callback != null) {
+            $callback($client->getRequest(), $client->getResponse(), $client->getError());
+        }
+
+        curl_close($handle);
     }
 }

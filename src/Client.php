@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
-use Froq\Http\Client\Agent\Agent;
+use Froq\Http\Client\Agent\{Curl, CurlMulti};
 
 /**
  * @package    Froq
@@ -52,28 +52,44 @@ final class Client extends AbstractClient
 
     /**
      * Send.
-     * @param  callable $callback
+     * @param  callable|null $callback
      * @return Froq\Http\Client\Response
      * @throws Froq\Http\Client\ClientException
      */
     public function send(callable $callback = null): Response
     {
-        $this->reset();
-
-        $this->processPreSend();
-
-        // $type = $this->async() ? 'curlmulti' : 'curl';
-        $type = 'curl';
-        $this->setAgent(Agent::init($type, $this));
-        $this->setAgentType($type);
-
-        $this->processPostSend();
-
-        $callback = $callback ?? $this->getCallback();
+        $agent = new Curl();
+        $agent->setClient($this);
+        $this->setAgent($agent)->setAgentType('curl');
         if ($callback != null) {
-            $callback($this->request, $this->response, $this->error);
+            $this->setCallback($callback);
+        }
+        $agent->run();
+
+        $response = $this->getResponse();
+
+        return $response;
+    }
+
+    // @param  Queue[]
+    // @return Response[]
+    public static function sendAsync(array $clients): array
+    {
+        foreach ($clients as $client) {
+            $agent = new Curl();
+            $agent->setClient($client);
+            $client->setAgent($agent)->setAgentType('curl');
         }
 
-        return $this->response;
+        $agentMulti = new CurlMulti();
+        $agentMulti->setClients($clients);
+        $agentMulti->run();
+
+        $responses = [];
+        foreach ($agentMulti->getClients() as $client) {
+            $responses[] = $client->getResponse();
+        }
+
+        return $responses;
     }
 }
