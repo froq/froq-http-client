@@ -608,10 +608,10 @@ final class Client
 
     /**
      * Send async.
-     * @return Froq\Http\Client\Response[]
+     * @return Froq\Http\Client\Responses
      */
-    public function sendAsync(): array
+    public function sendAsync(): Responses
     {
-        return MessageEmitter::sendAsync([$this]);
+        return MessageEmitter::sendAsync(new Clients([$this]));
     }
 }
