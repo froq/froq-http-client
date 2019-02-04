@@ -37,48 +37,50 @@ use Froq\Http\Client\Client;
  */
 abstract class Agent
 {
+    /**
+     * Handle.
+     * @var resource
+     */
     protected $handle;
-    protected $handleType;
 
     /**
      * Constructor.
-     * @param resource $handle
-     * @param string   $handleType
+     * @param  resource $handle
+     * @throws Froq\Http\Client\Agent\AgentException
      */
-    public function __construct($handle, string $handleType)
+    public function __construct($handle)
     {
+        if (!is_resource($handle)) {
+            throw new AgentException('No valid resource given');
+        }
+
         $this->handle = $handle;
-        $this->handleType = $handleType;
     }
 
+    /**
+     * Get handle.
+     * @return resource
+     */
     public final function getHandle()
     {
         return $this->handle;
     }
-    public final function getHandleType()
-    {
-        return $this->handleType;
-    }
 
-    public static final function init(string $type, Client $client): Agent
-    {
-        switch ($type) {
-            case 'curl': return new Curl($client);
-            case 'curlmulti': return new CurlMulti($client);
-            case 'fsock': return new FSock($client);
-            default:
-                throw new AgentException("Unknown type '{$type}' given");
-        }
-    }
-
+    /**
+     * Apply curl options.
+     * @return void
+     * @throws Froq\Http\Client\Agent\AgentException
+     */
     public final function applyCurlOptions(): void
     {
         if ($this->handle == null) {
             throw new AgentException('No curl handle yet to apply options');
         }
+        if ($this->client == null) {
+            throw new AgentException('No curl client yet to apply options');
+        }
 
         $request = $this->client->getRequest();
-        // prd($this->client,1);
 
         [$method, $url, $headers, $body, $options, $arguments] = [
             $request->getMethod(), $request->getFullUrl(), $request->getHeaders(),
@@ -142,5 +144,9 @@ abstract class Agent
         curl_setopt_array($this->handle, $options);
     }
 
+    /**
+     * Run.
+     * @return void
+     */
     abstract public function run(): void;
 }
