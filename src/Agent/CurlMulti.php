@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client\Agent;
 
-use Froq\Http\Client\{Client, ClientError};
+use Froq\Http\Client\{Clients, ClientError};
 
 /**
  * @package    Froq
@@ -39,43 +39,55 @@ final class CurlMulti extends Agent
 {
     /**
      * Clients.
-     * @var Froq\Http\Client\Client[]
+     * @var ?Froq\Http\Client\Clients
      */
     protected $clients;
 
-    // @param Client[] $clients
-    public function __construct(array $clients = null)
+    /**
+     * Constructor.
+     * @param Froq\Http\Client\Clients|null $clients
+     */
+    public function __construct(Clients $clients = null)
     {
         if (!extension_loaded('curl')) {
             throw new AgentException('curl module not found');
         }
 
-        parent::__construct(curl_multi_init(), 'curlmulti');
-
         $clients && $this->setClients($clients);
+
+        parent::__construct(curl_multi_init(), 'curlmulti');
     }
 
-    public function setClients(array $clients): self
+    /**
+     * Set clients.
+     * @param  Froq\Http\Client\Clients $clients
+     * @return self
+     */
+    public function setClients(Clients $clients): self
     {
-        foreach ($clients as $client) {
-            if (!$client instanceof Client) {
-                throw new AgentException('Each client must be an instance of '. Client::class);
-            }
-            $this->clients[] = $client;
-        }
+        $this->clients = $clients;
 
         return $this;
     }
-    public function getClients(): ?array
+
+    /**
+     * Get clients.
+     * @return ?Froq\Http\Client\Clients
+     */
+    public function getClients(): ?Clients
     {
         return $this->clients;
     }
 
+    /**
+     * Run.
+     * @return void
+     */
     public function run(): void
     {
         $clients = [];
 
-        foreach ((array) $this->getclients() as $client) {
+        foreach ($this->clients as $client) {
             $client->reset();
             $client->processPreSend();
 
@@ -125,6 +137,7 @@ final class CurlMulti extends Agent
                     continue;
                 }
 
+                // check status
                 $ok = ($info['result'] == CURLE_OK && $info['msg'] == CURLMSG_DONE);
 
                 $error = null;
@@ -145,6 +158,7 @@ final class CurlMulti extends Agent
             }
         } while ($running);
 
+        // close handles
         foreach ($clients as $client) {
             curl_close($client->getAgent()->getHandle());
         }
