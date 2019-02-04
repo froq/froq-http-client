@@ -37,27 +37,52 @@ use Froq\Http\Client\{Client, ClientError};
  */
 final class Curl extends Agent
 {
+    /**
+     * Client.
+     * @var Froq\Http\Client\Client
+     */
     protected $client;
 
-    public function __construct()
+    /**
+     * Constructor.
+     * @param Froq\Http\Client\Client|null $client
+     */
+    public function __construct(Client $client = null)
     {
         if (!extension_loaded('curl')) {
             throw new AgentException('curl module not found');
         }
 
         parent::__construct(curl_init(), 'curl');
+
+        $client && $this->setClient($client);
     }
 
+    /**
+     * Set client.
+     * @param  Froq\Http\Client\\Client $client
+     * @return self
+     */
     public final function setClient(Client $client): self
     {
         $this->client = $client;
+        $this->client->setAgent($this);
+
         return $this;
     }
+
+    /**
+     * Get client.
+     * @return ?Froq\Http\Client\Client
+     */
     public final function getClient(): ?Client
     {
         return $this->client;
     }
 
+    /**
+     * @inheritDoc Froq\Http\Client\Agent\Agent
+     */
     public function run(): void
     {
         $client = $this->getClient();
@@ -77,9 +102,6 @@ final class Curl extends Agent
         $result =@ curl_exec($handle);
         $resultInfo = null;
         if ($result !== false) {
-            if (strpos($result, "\r\n\r\n") === false) {
-                $result .= "\r\n\r\n";
-            }
             $resultInfo = curl_getinfo($handle);
         } else {
             $error = new ClientError(curl_error($handle), curl_errno($handle));
