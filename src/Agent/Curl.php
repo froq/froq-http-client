@@ -53,9 +53,9 @@ final class Curl extends Agent
             throw new AgentException('curl module not found');
         }
 
-        parent::__construct(curl_init(), 'curl');
-
         $client && $this->setClient($client);
+
+        parent::__construct(curl_init(), 'curl');
     }
 
     /**
