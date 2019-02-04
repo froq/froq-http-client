@@ -52,17 +52,17 @@ abstract class Message
     * Headers.
     * @var array
     */
-    protected $headers;
+    protected $headers = [];
 
     /**
     * Body.
-    * @var any
+    * @var ?any
     */
     protected $body;
 
     /**
     * Raw body.
-    * @var string
+    * @var ?string
     */
     protected $rawBody;
 
@@ -209,9 +209,9 @@ abstract class Message
 
     /**
      * Get raw body.
-     * @return any
+     * @return ?string
      */
-    public final function getRawBody()
+    public final function getRawBody(): ?string
     {
         return $this->rawBody;
     }
