@@ -188,7 +188,7 @@ abstract class Message
 
     /**
      * Get body.
-     * @return any
+     * @return ?any
      */
     public final function getBody()
     {
