@@ -39,8 +39,8 @@ abstract class Message
     * Types.
     * @const int
     */
-    const TYPE_REQUEST  = 1,
-          TYPE_RESPONSE = 2;
+    const TYPE_REQUEST  = 'Request',
+          TYPE_RESPONSE = 'Response';
 
     /**
     * Type.
