@@ -80,8 +80,7 @@ final class CurlMulti extends Agent
     }
 
     /**
-     * Run.
-     * @return void
+     * @inheritDoc Froq\Http\Client\Agent\Agent
      */
     public function run(): void
     {
