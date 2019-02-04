@@ -92,7 +92,6 @@ final class CurlMulti extends Agent
             $client->processPreSend();
 
             $agent = $client->getAgent();
-            // prs($agent);
             $agent->applyCurlOptions();
 
             $handle = $agent->getHandle();
