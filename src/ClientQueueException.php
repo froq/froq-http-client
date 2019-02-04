@@ -29,9 +29,9 @@ namespace Froq\Http\Client;
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\QueueException
+ * @object     Froq\Http\Client\ClientQueueException
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-final class QueueException extends \Exception
+final class ClientQueueException extends \Exception
 {}

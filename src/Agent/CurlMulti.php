@@ -37,22 +37,29 @@ use Froq\Http\Client\{Client, ClientError};
  */
 final class CurlMulti extends Agent
 {
+    /**
+     * Clients.
+     * @var Froq\Http\Client\Client[]
+     */
     protected $clients;
 
-    public function __construct()
+    // @param Client[] $clients
+    public function __construct(array $clients = null)
     {
         if (!extension_loaded('curl')) {
             throw new AgentException('curl module not found');
         }
 
         parent::__construct(curl_multi_init(), 'curlmulti');
+
+        $clients && $this->setClients($clients);
     }
 
     public function setClients(array $clients): self
     {
         foreach ($clients as $client) {
             if (!$client instanceof Client) {
-                throw new AgentException('Each client must be instance of Froq\Http\Client\Client');
+                throw new AgentException('Each client must be an instance of '. Client::class);
             }
             $this->clients[] = $client;
         }
@@ -73,6 +80,7 @@ final class CurlMulti extends Agent
             $client->processPreSend();
 
             $agent = $client->getAgent();
+            // prs($agent);
             $agent->applyCurlOptions();
 
             $handle = $agent->getHandle();
@@ -82,9 +90,11 @@ final class CurlMulti extends Agent
                 throw new AgentException(curl_multi_strerror($error), $error);
             }
 
-            $clients[(int) $handle] = $client; // tick
+            // tick
+            $clients[(int) $handle] = $client;
         }
 
+        // exec wrapper (http://php.net/manual/en/function.curl-multi-select.php#108928)
         $exec = function ($handle, &$running) {
             do {
                 $code = curl_multi_exec($handle, $running);
@@ -118,12 +128,9 @@ final class CurlMulti extends Agent
                 $ok = ($info['result'] == CURLE_OK && $info['msg'] == CURLMSG_DONE);
 
                 $error = null;
-                $result = $ok ? curl_multi_getcontent($handle) : null;
+                $result = $ok ? curl_multi_getcontent($handle) : false;
                 $resultInfo = null;
-                if ($ok) {
-                    if (strpos($result, "\r\n\r\n") === false) {
-                        $result .= "\r\n\r\n";
-                    }
+                if ($result !== false) {
                     $resultInfo = curl_getinfo($handle);
                 } else {
                     $error = new ClientError(curl_error($handle), $info['result']);
