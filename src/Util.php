@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace Froq\Http\Client;
 
 use Froq\Dom\Dom;
+use Froq\Encoding\Encoder;
 
 /**
  * @package    Froq
@@ -147,10 +148,10 @@ final /* static */ class Util
      */
     public static function jsonEncode($input, array $options = null)
     {
-        return json_encode($input
-            , $options['encodeFlags'] ?? 0
-            , $options['encodeDepth'] ?? 512
-        );
+        $input = Encoder::jsonEncode($input, [
+            'flags' => $options['encodeFlags'] ?? 0
+            'depth' => $options['encodeDepth'] ?? 512
+        ])[0];
     }
 
     /**
@@ -161,11 +162,11 @@ final /* static */ class Util
      */
     public static function jsonDecode($input, array $options = null)
     {
-        return json_decode($input
-            , $options['assoc'] ?? false
-            , $options['decodeDepth'] ?? 512
-            , $options['decodeFlags'] ?? 0
-        );
+        return Encoder::jsonDecode($input [
+            'assoc' => $options['assoc'] ?? false
+            'depth' => $options['decodeDepth'] ?? 512
+            'flags' => $options['decodeFlags'] ?? 0
+        ])[0];
     }
 
     /**
