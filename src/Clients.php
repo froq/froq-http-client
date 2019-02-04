@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
-use Froq\Http\Client\Arrays\ClientArray;
+use Froq\Util\Arrays\TypedArray;
 
 /**
  * @package    Froq
@@ -35,5 +35,14 @@ use Froq\Http\Client\Arrays\ClientArray;
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-final class Clients extends ClientArray
-{}
+final class Clients extends TypedArray
+{
+    /**
+     * Constructor.
+     * @param array $items
+     */
+    public function __construct(array $items)
+    {
+        parent::__construct($items, Client::class);
+    }
+}
