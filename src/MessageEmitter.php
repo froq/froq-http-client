@@ -47,17 +47,17 @@ final /* static */ class MessageEmitter
         $agent = new Curl($client);
         $agent->run();
 
-        $response = $client->getResponse();
+        $response = $agent->getClient()->getResponse();
 
         return $response;
     }
 
     /**
      * Send async.
-     * @param  Froq\Http\Client\Client[]  $clients
-     * @return Froq\Http\Client\Response[]
+     * @param  Froq\Http\Client\Clients $clients
+     * @return Froq\Http\Client\Responses
      */
-    public static function sendAsync(array $clients): array
+    public static function sendAsync(Clients $clients): Responses
     {
         foreach ($clients as $client) {
             $client->setAgent(new Curl($client));
@@ -71,6 +71,6 @@ final /* static */ class MessageEmitter
             $responses[] = $client->getResponse();
         }
 
-        return $responses;
+        return new Responses($responses);
     }
 }
