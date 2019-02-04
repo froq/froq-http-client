@@ -95,20 +95,20 @@ final class ClientQueue implements Loopable
      */
     public function perform(): array
     {
-        $clients = array_filter($this->clients, function ($client) {
+        $clients = new Clients(array_filter($this->clients, function ($client) {
             return !$client->async();
-        });
-        $clientsAsync = array_filter($this->clients, function ($client) {
+        }));
+        $clientsAsync = new Clients(array_filter($this->clients, function ($client) {
             return $client->async();
-        });
+        }));
 
         $ret = [];
-        if ($clients != null) {
+        if ($clients->size()) {
             foreach ($clients as $client) {
                 $ret[] = MessageEmitter::send($client);
             }
         }
-        if ($clientsAsync != null) {
+        if ($clientsAsync->size()) {
             $clientsAsync = MessageEmitter::sendAsync($clientsAsync);
             foreach ($clientsAsync as $client) {
                 $ret[] = $client;
