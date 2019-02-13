@@ -68,9 +68,9 @@ abstract class Message
 
     /**
      * Constructor.
-     * @param int $type
+     * @param string $type
      */
-    public function __construct(int $type)
+    public function __construct(string $type)
     {
         $this->type = $type;
     }
