@@ -39,9 +39,9 @@ final class ClientQueue implements Loopable
 {
     /**
      * Clients.
-     * @var Froq\Http\Client\Clients
+     * @var array
      */
-    private $clients;
+    private $clients = [];
 
     /**
      * Constructor.
@@ -57,10 +57,20 @@ final class ClientQueue implements Loopable
     }
 
     /**
-     * Clients.
-     * @return Froq\Http\Client\Clients
+     * Client.
+     * @param  int $i
+     * @return ?Client
      */
-    public function clients(): ?Clients
+    public function client(int $i): ?Client
+    {
+        return $this->clients[$i] ?? null;
+    }
+
+    /**
+     * Clients.
+     * @return array
+     */
+    public function clients(): array
     {
         return $this->clients;
     }
