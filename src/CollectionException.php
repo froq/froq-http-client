@@ -29,9 +29,9 @@ namespace Froq\Http\Client;
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\TypedArrayException
+ * @object     Froq\Http\Client\CollectionException
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-final class TypedArrayException extends \Exception
+final class CollectionException extends \Exception
 {}

@@ -33,7 +33,7 @@ namespace Froq\Http\Client;
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-final class Responses extends TypedArray
+final class Responses extends Collection
 {
     /**
      * Constructor.

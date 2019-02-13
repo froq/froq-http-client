@@ -31,11 +31,11 @@ use Froq\Util\Interfaces\Loopable;
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\TypedArray
+ * @object     Froq\Http\Client\Collection
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-class TypedArray implements Loopable
+class Collection implements Loopable
 {
     /**
      * Items.
@@ -53,14 +53,14 @@ class TypedArray implements Loopable
      * Constructor.
      * @param  array  $items
      * @param  string $itemsType
-     * @throws Froq\Http\Client\TypedArrayException
+     * @throws Froq\Http\Client\CollectionException
      */
     public function __construct(array $items, string $itemsType)
     {
         foreach ($items as $item) {
             if (!is_a($item, $itemsType)) {
                 $itemType = get_class($item);
-                throw new TypedArrayException("Each item must be type of {$itemsType}, {$itemType} given");
+                throw new CollectionException("Each item must be type of {$itemsType}, {$itemType} given");
             }
         }
 
@@ -72,12 +72,12 @@ class TypedArray implements Loopable
      * Item.
      * @param  int $index
      * @return object
-     * @throws Froq\Http\Client\TypedArrayException
+     * @throws Froq\Http\Client\CollectionException
      */
     public final function item(int $index): object
     {
         if (!isset($this->items[$index])) {
-            throw new TypedArrayException("No item exists with index {$index}");
+            throw new CollectionException("No item exists with index {$index}");
         }
 
         return $this->items[$index];
