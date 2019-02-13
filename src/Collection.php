@@ -51,21 +51,23 @@ class Collection implements Loopable
 
     /**
      * Constructor.
-     * @param  array  $items
-     * @param  string $itemsType
+     * @param  array|null  $items
+     * @param  string|null $itemsType
      * @throws Froq\Http\Client\CollectionException
      */
-    public function __construct(array $items, string $itemsType)
+    public function __construct(array $items = null, string $itemsType = null)
     {
-        foreach ($items as $item) {
-            if (!is_a($item, $itemsType)) {
-                $itemType = get_class($item);
-                throw new CollectionException("Each item must be type of {$itemsType}, {$itemType} given");
+        if ($items && $itemType) {
+            foreach ($items as $item) {
+                if (!is_a($item, $itemsType)) {
+                    $itemType = get_class($item);
+                    throw new CollectionException("Each item must be type of {$itemsType}, {$itemType} given");
+                }
             }
         }
 
-        $this->items = $items;
-        $this->itemsType = $itemsType;
+        $this->items = $items ?? [];
+        $this->itemsType = $itemsType ?? 'any';
     }
 
     /**
@@ -90,6 +92,40 @@ class Collection implements Loopable
     public final function items(): array
     {
         return $this->items;
+    }
+
+    /**
+     * Items type.
+     * @return string
+     */
+    public final function itemsType(): string
+    {
+        return $this->itemsType;
+    }
+
+    /**
+     * Add.
+     * @param  any $item
+     * @return void
+     */
+    public final function add($item): void
+    {
+        if ($itemType && !is_a($item, $itemsType)) {
+            $itemType = get_class($item);
+            throw new CollectionException("Each item must be type of {$itemsType}, {$itemType} given");
+        }
+
+        $this->items[] = $items;
+    }
+
+    /**
+     * Remove.
+     * @param  int $index
+     * @return void
+     */
+    public final function remove(int $index): void
+    {
+        unset($this->items[$index]);
     }
 
     /**
