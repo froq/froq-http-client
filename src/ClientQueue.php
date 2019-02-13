@@ -35,14 +35,8 @@ use Froq\Util\Interfaces\Loopable;
  * @author     Kerem Güneş <k-gun@mail.com>
  * @since      3.0
  */
-final class ClientQueue implements Loopable
+final class ClientQueue extends Collection
 {
-    /**
-     * Clients.
-     * @var array
-     */
-    private $clients = [];
-
     /**
      * Constructor.
      * @param Froq\Http\Client\Clients|null $clients
@@ -58,12 +52,17 @@ final class ClientQueue implements Loopable
 
     /**
      * Client.
-     * @param  int $i
-     * @return ?Client
+     * @param  int $index
+     * @return Froq\Http\Client\Client
+     * @throws Froq\Http\Client\ClientQueueException
      */
-    public function client(int $i): ?Client
+    public function client(int $index): Client
     {
-        return $this->clients[$i] ?? null;
+        if (!isset($this->items[$index])) {
+            throw new ClientQueueException("No client exists with index {$index}");
+        }
+
+        return $this->item($index);
     }
 
     /**
@@ -72,31 +71,29 @@ final class ClientQueue implements Loopable
      */
     public function clients(): array
     {
-        return $this->clients;
+        return $this->items();
     }
 
     /**
      * Add client.
      * @param  Froq\Http\Client\Client $client
-     * @return self
+     * @return void
      */
-    public function addClient(Client $client): self
+    public function addClient(Client $client): void
     {
-        $this->clients[] = $client;
-
-        return $this;
+        $this->add($client);
     }
 
     /**
      * Add async client.
      * @param  Froq\Http\Client\Client $client
-     * @return self
+     * @return void
      */
-    public function addAsyncClient(Client $client): self
+    public function addAsyncClient(Client $client): void
     {
         $client->async(true);
 
-        return $this->addClient($client);
+        $this->add($client);
     }
 
     /**
@@ -105,10 +102,10 @@ final class ClientQueue implements Loopable
      */
     public function perform(): array
     {
-        $clients = new Clients(array_filter($this->clients, function ($client) {
+        $clients = new Clients(array_filter($this->items, function ($client) {
             return !$client->async();
         }));
-        $clientsAsync = new Clients(array_filter($this->clients, function ($client) {
+        $clientsAsync = new Clients(array_filter($this->items, function ($client) {
             return $client->async();
         }));
 
@@ -126,29 +123,5 @@ final class ClientQueue implements Loopable
         }
 
         return $ret;
-    }
-
-    /**
-     * @inheritDoc Froq\Util\Interfaces\Sizable
-     */
-    public function size(): int
-    {
-        return count($this->clients);
-    }
-
-    /**
-     * @inheritDoc Froq\Util\Interfaces\Arrayable
-     */
-    public function toArray(): array
-    {
-        return $this->clients;
-    }
-
-    /**
-     * @inheritDoc \IteratorAggregate
-     */
-    public final function getIterator(): \ArrayIterator
-    {
-        return new \ArrayIterator($this->clients);
     }
 }
