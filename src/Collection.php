@@ -57,13 +57,8 @@ class Collection implements Loopable
      */
     public function __construct(array $items = null, string $itemsType = null)
     {
-        if ($items && $itemType) {
-            foreach ($items as $item) {
-                if (!is_a($item, $itemsType)) {
-                    $itemType = get_class($item);
-                    throw new CollectionException("Each item must be type of {$itemsType}, {$itemType} given");
-                }
-            }
+        foreach ((array) $items as $item) {
+            $this->checkItemType($item, $itemsType);
         }
 
         $this->items = $items ?? [];
@@ -107,15 +102,13 @@ class Collection implements Loopable
      * Add.
      * @param  any $item
      * @return void
+     * @throws Froq\Http\Client\CollectionException
      */
     public final function add($item): void
     {
-        if ($itemType && !is_a($item, $itemsType)) {
-            $itemType = get_class($item);
-            throw new CollectionException("Each item must be type of {$itemsType}, {$itemType} given");
-        }
+        $this->checkItemType($item, $this->itemsType);
 
-        $this->items[] = $items;
+        $this->items[] = $item;
     }
 
     /**
@@ -150,5 +143,20 @@ class Collection implements Loopable
     public final function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->items);
+    }
+
+    /**
+     * Check item type.
+     * @param  any     $item
+     * @param  ?string $itemType
+     * @return void
+     * @throws Froq\Http\Client\CollectionException
+     */
+    protected final function checkItemType($item, ?string $itemType): void
+    {
+        if ($item && $itemType && $itemType != 'any' && !is_a($item, $itemType)) {
+            throw new CollectionException(sprintf('Each item must be type of %s, %s given',
+                $itemType, get_class($item)));
+        }
     }
 }
