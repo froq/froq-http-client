@@ -26,8 +26,6 @@ declare(strict_types=1);
 
 namespace Froq\Http\Client;
 
-use Froq\Util\Arrays\TypedArray;
-
 /**
  * @package    Froq
  * @subpackage Froq\Http\Client
