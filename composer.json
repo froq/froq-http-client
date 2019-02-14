@@ -9,7 +9,7 @@
     ],
     "require": {
         "php": "^7.2",
-        "froq/froq-dom": "^1.0",
+        "froq/froq-dom": "^3.0",
         "froq/froq-encoding": "^3.0"
     },
     "autoload": {
