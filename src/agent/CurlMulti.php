@@ -24,28 +24,28 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client\Agent;
+namespace froq\http\client\agent;
 
-use Froq\Http\Client\{Clients, ClientError};
+use froq\http\client\{Clients, ClientError};
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client\Agent
- * @object     Froq\Http\Client\Agent\CurlMulti
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Curl multi.
+ * @package froq\http\client\agent
+ * @object  froq\http\client\agent\CurlMulti
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class CurlMulti extends Agent
 {
     /**
      * Clients.
-     * @var ?Froq\Http\Client\Clients
+     * @var ?froq\http\client\Clients
      */
     protected $clients;
 
     /**
      * Constructor.
-     * @param Froq\Http\Client\Clients|null $clients
+     * @param froq\http\client\Clients|null $clients
      */
     public function __construct(Clients $clients = null)
     {
@@ -60,7 +60,7 @@ final class CurlMulti extends Agent
 
     /**
      * Set clients.
-     * @param  Froq\Http\Client\Clients $clients
+     * @param  froq\http\client\Clients $clients
      * @return self
      */
     public function setClients(Clients $clients): self
@@ -72,7 +72,7 @@ final class CurlMulti extends Agent
 
     /**
      * Get clients.
-     * @return ?Froq\Http\Client\Clients
+     * @return ?froq\http\client\Clients
      */
     public function getClients(): ?Clients
     {
@@ -80,7 +80,7 @@ final class CurlMulti extends Agent
     }
 
     /**
-     * @inheritDoc Froq\Http\Client\Agent\Agent
+     * @inheritDoc froq\http\client\agent\Agent
      */
     public function run(): void
     {

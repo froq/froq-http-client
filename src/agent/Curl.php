@@ -24,28 +24,28 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client\Agent;
+namespace froq\http\client\agent;
 
-use Froq\Http\Client\{Client, ClientError};
+use froq\http\client\{Client, ClientError};
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client\Agent
- * @object     Froq\Http\Client\Agent\Curl
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Curl.
+ * @package froq\http\client\agent
+ * @object  froq\http\client\agent\Curl
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class Curl extends Agent
 {
     /**
      * Client.
-     * @var Froq\Http\Client\Client
+     * @var froq\http\client\Client
      */
     protected $client;
 
     /**
      * Constructor.
-     * @param Froq\Http\Client\Client|null $client
+     * @param froq\http\client\Client|null $client
      */
     public function __construct(Client $client = null)
     {
@@ -60,7 +60,7 @@ final class Curl extends Agent
 
     /**
      * Set client.
-     * @param  Froq\Http\Client\\Client $client
+     * @param  froq\http\client\\Client $client
      * @return self
      */
     public final function setClient(Client $client): self
@@ -73,7 +73,7 @@ final class Curl extends Agent
 
     /**
      * Get client.
-     * @return ?Froq\Http\Client\Client
+     * @return ?froq\http\client\Client
      */
     public final function getClient(): ?Client
     {
@@ -81,7 +81,7 @@ final class Curl extends Agent
     }
 
     /**
-     * @inheritDoc Froq\Http\Client\Agent\Agent
+     * @inheritDoc froq\http\client\agent\Agent
      */
     public function run(): void
     {

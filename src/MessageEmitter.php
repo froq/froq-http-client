@@ -24,23 +24,23 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
-use Froq\Http\Client\Agent\{Curl, CurlMulti};
+use froq\http\client\agent\{Curl, CurlMulti};
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\MessageEmitter
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Message emitter.
+ * @package froq\http\client
+ * @object  froq\http\client\MessageEmitter
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final /* static */ class MessageEmitter
 {
     /**
      * Send.
-     * @param  Froq\Http\Client\Client $client
-     * @return Froq\Http\Client\Response
+     * @param  froq\http\client\Client $client
+     * @return froq\http\client\Response
      */
     public static function send(Client $client): Response
     {
@@ -54,8 +54,8 @@ final /* static */ class MessageEmitter
 
     /**
      * Send async.
-     * @param  Froq\Http\Client\Clients $clients
-     * @return Froq\Http\Client\Responses
+     * @param  froq\http\client\Clients $clients
+     * @return froq\http\client\Responses
      */
     public static function sendAsync(Clients $clients): Responses
     {

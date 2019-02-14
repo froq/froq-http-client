@@ -24,14 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\Response
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Response.
+ * @package froq\http\client
+ * @object  froq\http\client\Response
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class Response extends Message
 {

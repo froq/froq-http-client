@@ -24,16 +24,16 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
-use Froq\Http\Client\Agent\Agent;
+use froq\http\client\agent\Agent;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\Client
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Client.
+ * @package froq\http\client
+ * @object  froq\http\client\Client
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class Client
 {
@@ -45,13 +45,13 @@ final class Client
 
     /**
      * Request.
-     * @var Froq\Http\Client\Request
+     * @var froq\http\client\Request
      */
     protected $request;
 
     /**
      * Response.
-     * @var Froq\Http\Client\Response
+     * @var froq\http\client\Response
      */
     protected $response;
 
@@ -100,13 +100,13 @@ final class Client
 
     /**
      * Error.
-     * @var ?Froq\Http\Client\ClientError
+     * @var ?froq\http\client\ClientError
      */
     protected $error;
 
     /**
      * Agent.
-     * @var Froq\Http\Client\Agent\Agent
+     * @var froq\http\client\agent\Agent
      */
     protected $agent;
 
@@ -138,8 +138,8 @@ final class Client
      * Call magic.
      * @param  string $func
      * @param  array  $funcArgs
-     * @return Froq\Http\Client\Response
-     * @throws Froq\Http\Client\ClientException
+     * @return froq\http\client\Response
+     * @throws froq\http\client\ClientException
      */
     public function __call(string $func, array $funcArgs): Response
     {
@@ -170,7 +170,7 @@ final class Client
 
     /**
      * Get request.
-     * @return ?Froq\Http\Client\Request
+     * @return ?froq\http\client\Request
      */
     public function getRequest(): ?Request
     {
@@ -179,7 +179,7 @@ final class Client
 
     /**
      * Get response.
-     * @return ?Froq\Http\Client\Response
+     * @return ?froq\http\client\Response
      */
     public function getResponse(): ?Response
     {
@@ -342,7 +342,7 @@ final class Client
 
     /**
      * Get error.
-     * @return ?Froq\Http\Client\ClientError
+     * @return ?froq\http\client\ClientError
      */
     public function getError(): ?ClientError
     {
@@ -351,7 +351,7 @@ final class Client
 
     /**
      * Set agent.
-     * @param  Froq\Http\Client\Agent\Agent $agent
+     * @param  froq\http\client\agent\Agent $agent
      * @return self
      */
     public function setAgent(Agent $agent): self
@@ -363,7 +363,7 @@ final class Client
 
     /**
      * Get agent.
-     * @return ?Froq\Http\Client\Agent\Agent
+     * @return ?froq\http\client\agent\Agent
      */
     public function getAgent(): ?Agent
     {
@@ -599,7 +599,7 @@ final class Client
 
     /**
      * Send.
-     * @return Froq\Http\Client\Response
+     * @return froq\http\client\Response
      */
     public function send(): Response
     {
@@ -608,7 +608,7 @@ final class Client
 
     /**
      * Send async.
-     * @return Froq\Http\Client\Responses
+     * @return froq\http\client\Responses
      */
     public function sendAsync(): Responses
     {

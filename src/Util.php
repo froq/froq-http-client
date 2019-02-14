@@ -24,17 +24,17 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
-use Froq\Dom\Dom;
-use Froq\Encoding\Encoder;
+use froq\dom\Dom;
+use froq\encoding\Encoder;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\Util
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Util.
+ * @package froq\http\client
+ * @object  froq\http\client\Util
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final /* static */ class Util
 {
@@ -42,7 +42,7 @@ final /* static */ class Util
      * Parse url.
      * @param  string $url
      * @return array
-     * @throws Froq\Http\Client\UtilException
+     * @throws froq\http\client\UtilException
      */
     public static final function parseUrl(string $url): array
     {
@@ -174,7 +174,7 @@ final /* static */ class Util
      * @param  array|object $input
      * @param  bool         $normalizeArrays
      * @return string
-     * @throws Froq\Http\Client\UtilException
+     * @throws froq\http\client\UtilException
      */
     public static function buildQuery($input, bool $normalizeArrays = true): string
     {
@@ -183,7 +183,7 @@ final /* static */ class Util
             throw new UtilException("Only array or object input accepted, '{$inputType}' given");
         }
 
-        // check Froq\Util\Functions\to_query_string
+        // check froq\util\functions\to_query_string
         if (function_exists('to_query_string')) {
             return to_query_string($input, null, false, $normalizeArrays);
         }

@@ -24,14 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client\Agent;
+namespace froq\http\client\agent;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\Agent\AgentException
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Agent exception.
+ * @package froq\http\client\agent
+ * @object  froq\http\client\agent\AgentException
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class AgentException extends \Exception
 {}

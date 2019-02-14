@@ -24,14 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\Message
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Message.
+ * @package froq\http\client
+ * @object  froq\http\client\Message
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 abstract class Message
 {

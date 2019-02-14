@@ -24,14 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\ClientError
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Client error.
+ * @package froq\http\client
+ * @object  froq\http\client\ClientError
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class ClientError extends \Error
 {}

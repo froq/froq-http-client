@@ -24,16 +24,16 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
+namespace froq\http\client;
 
-use Froq\Util\Interfaces\Loopable;
+use froq\util\interfaces\Loopable;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\Collection
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Collection.
+ * @package froq\http\client
+ * @object  froq\http\client\Collection
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 class Collection implements Loopable
 {
@@ -53,7 +53,7 @@ class Collection implements Loopable
      * Constructor.
      * @param  array|null  $items
      * @param  string|null $itemsType
-     * @throws Froq\Http\Client\CollectionException
+     * @throws froq\http\client\CollectionException
      */
     public function __construct(array $items = null, string $itemsType = null)
     {
@@ -69,7 +69,7 @@ class Collection implements Loopable
      * Item.
      * @param  int $index
      * @return object
-     * @throws Froq\Http\Client\CollectionException
+     * @throws froq\http\client\CollectionException
      */
     public final function item(int $index): object
     {
@@ -102,7 +102,7 @@ class Collection implements Loopable
      * Add.
      * @param  any $item
      * @return void
-     * @throws Froq\Http\Client\CollectionException
+     * @throws froq\http\client\CollectionException
      */
     public final function add($item): void
     {
@@ -122,7 +122,7 @@ class Collection implements Loopable
     }
 
     /**
-     * @inheritDoc Froq\Util\Interfaces\Sizable
+     * @inheritDoc froq\util\interfaces\Sizable
      */
     public final function size(): int
     {
@@ -130,7 +130,7 @@ class Collection implements Loopable
     }
 
     /**
-     * @inheritDoc Froq\Util\Interfaces\Arrayable
+     * @inheritDoc froq\util\interfaces\Arrayable
      */
     public final function toArray(): array
     {
@@ -150,7 +150,7 @@ class Collection implements Loopable
      * @param  any     $item
      * @param  ?string $itemType
      * @return void
-     * @throws Froq\Http\Client\CollectionException
+     * @throws froq\http\client\CollectionException
      */
     protected final function checkItemType($item, ?string $itemType): void
     {

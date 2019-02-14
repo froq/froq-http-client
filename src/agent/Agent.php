@@ -24,16 +24,14 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client\Agent;
-
-use Froq\Http\Client\Client;
+namespace froq\http\client\agent;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client\Agent
- * @object     Froq\Http\Client\Agent\Agent
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Agent.
+ * @package froq\http\client\agent
+ * @object  froq\http\client\agent\Agent
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 abstract class Agent
 {
@@ -46,7 +44,7 @@ abstract class Agent
     /**
      * Constructor.
      * @param  resource $handle
-     * @throws Froq\Http\Client\Agent\AgentException
+     * @throws froq\http\client\agent\AgentException
      */
     public function __construct($handle)
     {
@@ -69,7 +67,7 @@ abstract class Agent
     /**
      * Apply curl options.
      * @return void
-     * @throws Froq\Http\Client\Agent\AgentException
+     * @throws froq\http\client\agent\AgentException
      */
     public final function applyCurlOptions(): void
     {

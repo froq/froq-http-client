@@ -24,22 +24,20 @@
  */
 declare(strict_types=1);
 
-namespace Froq\Http\Client;
-
-use Froq\Util\Interfaces\Loopable;
+namespace froq\http\client;
 
 /**
- * @package    Froq
- * @subpackage Froq\Http\Client
- * @object     Froq\Http\Client\ClientQueue
- * @author     Kerem Güneş <k-gun@mail.com>
- * @since      3.0
+ * Client queue.
+ * @package froq\http\client
+ * @object  froq\http\client\ClientQueue
+ * @author  Kerem Güneş <k-gun@mail.com>
+ * @since   3.0
  */
 final class ClientQueue extends Collection
 {
     /**
      * Constructor.
-     * @param Froq\Http\Client\Clients|null $clients
+     * @param froq\http\client\Clients|null $clients
      */
     public function __construct(Clients $clients = null)
     {
@@ -53,8 +51,8 @@ final class ClientQueue extends Collection
     /**
      * Client.
      * @param  int $index
-     * @return Froq\Http\Client\Client
-     * @throws Froq\Http\Client\ClientQueueException
+     * @return froq\http\client\Client
+     * @throws froq\http\client\ClientQueueException
      */
     public function client(int $index): Client
     {
@@ -76,7 +74,7 @@ final class ClientQueue extends Collection
 
     /**
      * Add client.
-     * @param  Froq\Http\Client\Client $client
+     * @param  froq\http\client\Client $client
      * @return void
      */
     public function addClient(Client $client): void
@@ -86,7 +84,7 @@ final class ClientQueue extends Collection
 
     /**
      * Add async client.
-     * @param  Froq\Http\Client\Client $client
+     * @param  froq\http\client\Client $client
      * @return void
      */
     public function addAsyncClient(Client $client): void
