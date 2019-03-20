@@ -183,11 +183,6 @@ final /* static */ class Util
             throw new UtilException("Only array or object input accepted, '{$inputType}' given");
         }
 
-        // check froq\util\functions\to_query_string
-        if (function_exists('to_query_string')) {
-            return to_query_string($input, null, false, $normalizeArrays);
-        }
-
         // fix skipped NULL values by http_build_query()
         static $filter;
         if ($filter == null) {
