@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
-use froq\http\client\Collection;
+use froq\collection\SimpleCollection;
 
 /**
  * Responses.
@@ -35,7 +35,7 @@ use froq\http\client\Collection;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   3.0
  */
-final class Responses extends Collection
+final class Responses extends SimpleCollection
 {
     /**
      * Constructor.
