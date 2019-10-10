@@ -26,6 +26,8 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
+use froq\collection\SimpleCollection;
+
 /**
  * Client queue.
  * @package froq\http\client
@@ -33,7 +35,7 @@ namespace froq\http\client;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   3.0
  */
-final class ClientQueue extends Collection
+final class ClientQueue extends SimpleCollection
 {
     /**
      * Constructor.
@@ -104,16 +106,16 @@ final class ClientQueue extends Collection
             return !$client->async();
         }));
         $clientsAsync = new Clients(array_filter($this->items, function ($client) {
-            return $client->async();
+            return !!$client->async();
         }));
 
         $ret = [];
-        if ($clients->size()) {
+        if ($clients->count()) {
             foreach ($clients as $client) {
                 $ret[] = MessageEmitter::send($client);
             }
         }
-        if ($clientsAsync->size()) {
+        if ($clientsAsync->count()) {
             $clientsAsync = MessageEmitter::sendAsync($clientsAsync);
             foreach ($clientsAsync as $client) {
                 $ret[] = $client;
