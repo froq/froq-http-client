@@ -188,7 +188,7 @@ abstract class Message
 
     /**
      * Get body.
-     * @return ?any
+     * @return any
      */
     public final function getBody()
     {
@@ -209,9 +209,9 @@ abstract class Message
 
     /**
      * Get raw body.
-     * @return ?string
+     * @return any
      */
-    public final function getRawBody(): ?string
+    public final function getRawBody()
     {
         return $this->rawBody;
     }
