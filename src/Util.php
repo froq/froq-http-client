@@ -149,8 +149,8 @@ final /* static */ class Util
     public static function jsonEncode($input, array $options = null)
     {
         $input = Encoder::jsonEncode($input, [
-            'flags' => $options['encodeFlags'] ?? 0,
-            'depth' => $options['encodeDepth'] ?? 512
+            'depth' => $options['encodeDepth'] ?? 512,
+            'flags' => $options['encodeFlags'] ?? 0
         ])[0];
     }
 
@@ -163,9 +163,9 @@ final /* static */ class Util
     public static function jsonDecode($input, array $options = null)
     {
         return Encoder::jsonDecode($input, [
-            'assoc' => $options['assoc'] ?? false,
             'depth' => $options['decodeDepth'] ?? 512,
-            'flags' => $options['decodeFlags'] ?? 0
+            'flags' => $options['decodeFlags'] ?? 0,
+            'assoc' => $options['decodeAssoc'] ?? false
         ])[0];
     }
 

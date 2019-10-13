@@ -512,9 +512,9 @@ final class Client
                 $bodyType = gettype($body);
                 if ($bodyType == 'array' || $bodyType == 'object') {
                     $contentType = (string) $this->request->getHeader('Content-Type');
-                    $rawBody = strpos($contentType, '/json') || strpos($contentType, '+json')
-                        ? Util::jsonEncode($rawBody, $arguments['jsonOptions'] ?? [])
-                        : Util::buildQuery($rawBody);
+                    $rawBody = preg_match('~[/+-]json~i', $contentType)
+                        ? Util::jsonEncode($body, $arguments['jsonOptions'] ?? [])
+                        : Util::buildQuery($body);
                 }
 
                 $this->request->setBody($body)
@@ -572,11 +572,13 @@ final class Client
                     $body = $rawBody = gzdecode($body);
                 }
 
-                // decode json
-                if (strpos($contentType, '/json') || strpos($contentType, '+json')) {
-                    $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
-                } elseif (strpos($contentType, '/xml')) {
-                    $body = Util::parseXml($body, $arguments['xmlOptions'] ?? []);
+                // decode json / xml
+                if (!strpos($contentType, 'html')) {
+                    if (preg_match('~[/+-]json~i', $contentType)) {
+                        $body = Util::jsonDecode($body, $arguments['jsonOptions'] ?? []);
+                    } elseif (preg_match('~[/+-]xml~i', $contentType)) {
+                        $body = Util::parseXml($body, $arguments['xmlOptions'] ?? []);
+                    }
                 }
 
                 $this->response->setBody($body)
