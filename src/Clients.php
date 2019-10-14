@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
-use froq\collection\ItemsCollection;
+use froq\collection\ItemCollection;
 
 /**
  * Clients.
@@ -35,7 +35,7 @@ use froq\collection\ItemsCollection;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   3.0
  */
-final class Clients extends ItemsCollection
+final class Clients extends ItemCollection
 {
     /**
      * Constructor.
