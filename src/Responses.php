@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
-use froq\collection\TypedCollection;
+use froq\collection\ItemsCollection;
 
 /**
  * Responses.
@@ -35,7 +35,7 @@ use froq\collection\TypedCollection;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   3.0
  */
-final class Responses extends TypedCollection
+final class Responses extends ItemsCollection
 {
     /**
      * Constructor.

@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
-use froq\collection\SimpleCollection;
+use froq\collection\ItemsCollection;
 
 /**
  * Client queue.
@@ -35,7 +35,7 @@ use froq\collection\SimpleCollection;
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   3.0
  */
-final class ClientQueue extends SimpleCollection
+final class ClientQueue extends ItemsCollection
 {
     /**
      * Constructor.
@@ -58,11 +58,13 @@ final class ClientQueue extends SimpleCollection
      */
     public function client(int $index): Client
     {
-        if (!isset($this->items[$index])) {
+        $client = $this->item($index);
+
+        if ($client == null) {
             throw new ClientQueueException("No client exists with index {$index}");
         }
 
-        return $this->item($index);
+        return $client;
     }
 
     /**
@@ -102,20 +104,20 @@ final class ClientQueue extends SimpleCollection
      */
     public function perform(): array
     {
-        $clients = new Clients(array_filter($this->items, function ($client) {
+        $clients = new Clients(array_filter($this->clients(), function ($client) {
             return !$client->async();
         }));
-        $clientsAsync = new Clients(array_filter($this->items, function ($client) {
+        $clientsAsync = new Clients(array_filter($this->clients(), function ($client) {
             return !!$client->async();
         }));
 
         $ret = [];
-        if ($clients->count()) {
+        if (!$clients->isEmpty()) {
             foreach ($clients as $client) {
                 $ret[] = MessageEmitter::send($client);
             }
         }
-        if ($clientsAsync->count()) {
+        if (!$clientsAsync->isEmpty()) {
             $clientsAsync = MessageEmitter::sendAsync($clientsAsync);
             foreach ($clientsAsync as $client) {
                 $ret[] = $client;
