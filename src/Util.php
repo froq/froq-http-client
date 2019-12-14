@@ -26,47 +26,38 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
-use froq\dom\Dom;
-use froq\encoding\Encoder;
-
 /**
  * Util.
  * @package froq\http\client
  * @object  froq\http\client\Util
  * @author  Kerem Güneş <k-gun@mail.com>
  * @since   3.0
+ * @static
  */
-final /* static */ class Util
+final class Util
 {
     /**
      * Parse url.
      * @param  string $url
-     * @return array
-     * @throws froq\http\client\UtilException
+     * @return ?array
      */
-    public static final function parseUrl(string $url): array
+    public static function parseUrl(string $url): ?array
     {
-        // ensure scheme
-        if (!preg_match('~^(.+)://~', $url)) {
-            $url = 'http://'. $url;
-        }
-
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            throw new UtilException("No valid url given (url: {$url})");
+        // Ensure scheme is http (or https).
+        if (strpos($url, 'http') !== 0) {
+            return null;
         }
 
         $parsedUrl = parse_url($url);
         if (empty($parsedUrl['host'])) {
-            throw new UtilException("No host found in given url (url: {$url})");
+            return null;
         }
 
-        $authority = '';
-        $authorityUser = $parsedUrl['user'] ?? null;
-        $authorityPass = $parsedUrl['pass'] ?? null;
-        if ($authorityUser != null || $authorityPass != null) {
-            $authority = $authorityUser;
-            if ($authorityPass != null) {
-                $authority .= ':'. $authorityPass .'@';
+        @ [$authority, $user, $pass] = ['', $parsedUrl['user'], $parsedUrl['pass']];
+        if ($user != null || $pass != null) {
+            $authority = $user;
+            if ($pass != null) {
+                $authority .= ':'. $pass .'@';
             }
         }
 
@@ -81,32 +72,30 @@ final /* static */ class Util
             parse_str($query, $query);
         }
 
+        // Base URL with scheme, host, authority and path.
         $url = sprintf('%s://%s%s%s', $parsedUrl['scheme'], $authority, $host,
             $parsedUrl['path'] ?? '/');
+
         $urlParams = $query;
         $urlFragment = $parsedUrl['fragment'] ?? null;
 
-        $unparsedUrl = $url;
-        if ($urlParams) $unparsedUrl .= '?'. http_build_query($urlParams);
-        if ($urlFragment) $unparsedUrl .= '#'. $urlFragment;
-
-        return [$url, $urlParams, $urlFragment, $parsedUrl, $unparsedUrl];
+        return [$url, $urlParams, $urlFragment, $parsedUrl];
     }
 
     /**
      * Parse headers.
-     * @param  string $headers
-     * @param  bool   $allowMultiHeaders
+     * @param  string    $headers
+     * @param  bool|null $lower
      * @return array
      */
-    public static final function parseHeaders(string $headers, bool $allowMultiHeaders = true): array
+    public static function parseHeaders(string $headers, bool $lower = null): array
     {
-        $return = [];
+        $ret = [];
 
         $headers = explode("\r\n", trim($headers));
-        if (!empty($headers)) {
-            // pick first line
-            $return[0] = array_shift($headers);
+        if ($headers != null) {
+            // Pick status line.
+            $ret[0] = trim(array_shift($headers));
 
             foreach ($headers as $header) {
                 @ [$name, $value] = explode(':', $header, 2);
@@ -116,76 +105,32 @@ final /* static */ class Util
 
                 $name = trim((string) $name);
                 $value = trim((string) $value);
+                if ($lower) {
+                    $name = strtolower($name);
+                }
 
-                // handle multi-headers as array
-                if ($allowMultiHeaders && isset($return[$name])) {
-                    $return[$name] = array_merge((array) $return[$name], [$value]);
+                // Handle multi-headers as array.
+                if (isset($ret[$name])) {
+                    $ret[$name] = array_merge((array) $ret[$name], [$value]);
                 } else {
-                    $return[$name] = $value;
+                    $ret[$name] = $value;
                 }
             }
         }
 
-        return $return;
-    }
-
-    /**
-     * Parse xml.
-     * @param  any  $xml
-     * @param  array $options
-     * @return any
-     */
-    public static function parseXml($xml, array $options = null)
-    {
-        return Dom::parseXml($xml, $options);
-    }
-
-    /**
-     * Json encode.
-     * @param  any        $input
-     * @param  array|null $options
-     * @return any
-     */
-    public static function jsonEncode($input, array $options = null)
-    {
-        $input = Encoder::jsonEncode($input, [
-            'depth' => $options['encodeDepth'] ?? 512,
-            'flags' => $options['encodeFlags'] ?? 0
-        ])[0];
-    }
-
-    /**
-     * Json decode.
-     * @param  any        $input
-     * @param  array|null $options
-     * @return any
-     */
-    public static function jsonDecode($input, array $options = null)
-    {
-        return Encoder::jsonDecode($input, [
-            'depth' => $options['decodeDepth'] ?? 512,
-            'flags' => $options['decodeFlags'] ?? 0,
-            'assoc' => $options['decodeAssoc'] ?? false
-        ])[0];
+        return $ret;
     }
 
     /**
      * Build query.
-     * @param  array|object $input
-     * @param  bool         $normalizeArrays
+     * @param  array $input
+     * @param  bool  $normalizeArrays
      * @return string
-     * @throws froq\http\client\UtilException
      */
-    public static function buildQuery($input, bool $normalizeArrays = true): string
+    public static function buildQuery(array $input, bool $normalizeArrays = true): string
     {
-        $inputType = gettype($input);
-        if ($inputType != 'array' && $inputType != 'object') {
-            throw new UtilException("Only array or object input accepted, '{$inputType}' given");
-        }
-
-        // fix skipped NULL values by http_build_query()
-        static $filter;
-        if ($filter == null) {
+        // Fix skipped NULL values by http_build_query().
+        static $filter; if ($filter == null) {
             $filter = function($var) use(&$filter) {
                 foreach ($var as $key => $value) {
                     $var[$key] = is_array($value) || is_object($value)

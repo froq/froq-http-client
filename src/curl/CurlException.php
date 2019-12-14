@@ -24,14 +24,16 @@
  */
 declare(strict_types=1);
 
-namespace froq\http\client\agent;
+namespace froq\http\client\curl;
+
+use froq\http\client\ClientException;
 
 /**
- * Agent exception.
- * @package froq\http\client\agent
- * @object  froq\http\client\agent\AgentException
+ * Curl Exception.
+ * @package froq\http\client\curl
+ * @object  froq\http\client\curl\CurlException
  * @author  Kerem Güneş <k-gun@mail.com>
- * @since   3.0
+ * @since   4.0
  */
-final class AgentException extends \Exception
+class CurlException extends ClientException
 {}

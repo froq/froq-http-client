@@ -26,6 +26,8 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
+use froq\http\client\Message;
+
 /**
  * Request.
  * @package froq\http\client
@@ -39,32 +41,48 @@ final class Request extends Message
      * Methods.
      * @var string
      */
-    private $method;
+    private string $method;
 
     /**
      * Url.
      * @var string
      */
-    private $url;
+    private string $url;
 
     /**
      * Url.
-     * @var array
+     * @var ?array
      */
-    private $urlParams;
+    private ?array $urlParams = null;
 
     /**
      * Constructor.
+     * @param string      $method
+     * @param string      $url
+     * @param array|null  $urlParams
+     * @param string|null $body
+     * @param array|null  $headers
      */
-    public function __construct()
+    public function __construct(string $method, string $url, array $urlParams = null,
+        string $body = null, array $headers = null)
     {
-        parent::__construct(Message::TYPE_REQUEST);
+        $this->setMethod($method);
 
-        // set default headers
-        $this->headers['Connection'] = 'close';
-        $this->headers['Accept'] = '*/*';
-        $this->headers['Accept-Encoding'] = 'gzip';
-        $this->headers['User-Agent'] = 'Froq Http Client (+https://github.com/froq/froq-http-client)';
+        $this->setUrl($url);
+        if ($urlParams != null) {
+            $this->setUrlParams($urlParams);
+        }
+
+        // Default headers.
+        static $headersDefault = [
+            'accept' => '*/*',
+            'accept-encoding' => 'gzip',
+            'user-agent' => 'Froq Http Client (+https://github.com/froq/froq-http-client)',
+        ];
+
+        $headers = array_replace($headersDefault, $headers ?? []);
+
+        parent::__construct(Message::TYPE_REQUEST, null, $headers, $body);
     }
 
     /**
@@ -81,19 +99,19 @@ final class Request extends Message
 
     /**
      * Get method.
-     * @return ?string
+     * @return string
      */
-    public function getMethod(): ?string
+    public function getMethod(): string
     {
         return $this->method;
     }
 
     /**
      * Set url.
-     * @param  ?string $url
+     * @param  string $url
      * @return self
      */
-    public function setUrl(?string $url): self
+    public function setUrl(string $url): self
     {
         $this->url = $url;
 
@@ -102,19 +120,19 @@ final class Request extends Message
 
     /**
      * Get url.
-     * @return ?string
+     * @return string
      */
-    public function getUrl(): ?string
+    public function getUrl(): string
     {
         return $this->url;
     }
 
     /**
      * Set url params.
-     * @param  ?array $urlParams
+     * @param  array $urlParams
      * @return self
      */
-    public final function setUrlParams(?array $urlParams): self
+    public function setUrlParams(array $urlParams): self
     {
         $this->urlParams = $urlParams;
 
@@ -125,26 +143,19 @@ final class Request extends Message
      * Get url params.
      * @return ?array
      */
-    public final function getUrlParams(): ?array
+    public function getUrlParams(): ?array
     {
         return $this->urlParams;
     }
 
     /**
-     * Get full url.
-     * @return ?string
+     * Get uri.
+     * @return string
+     * @internal
      */
-    public function getFullUrl(): ?string
+    protected function getUri(): string
     {
-        $return = null;
-
-        if ($this->url != null) {
-            $return .= $this->url;
-        }
-        if ($this->urlParams != null) {
-            $return .= '?'. Util::buildQuery($this->urlParams);
-        }
-
-        return $return;
+        // Extract the only path and query part of URL.
+        return preg_replace('~^\w+://[^/]+(/.*)~', '\\1', $this->getUrl());
     }
 }

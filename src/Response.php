@@ -26,6 +26,8 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
+use froq\http\client\Message;
+
 /**
  * Response.
  * @package froq\http\client
@@ -37,73 +39,73 @@ final class Response extends Message
 {
     /**
      * Status.
-     * @var string
-     */
-    private $status;
-
-    /**
-     * Status code.
      * @var int
      */
-    private $statusCode;
+    private int $status;
 
     /**
-     * Status text.
-     * @var string
+     * Parsed body.
+     * @var ?array
      */
-    private $statusText;
+    private ?array $parsedBody = null;
 
     /**
      * Constructor.
+     * @param int         $status
+     * @param string|null $body
+     * @param array|null  $parsedBody
+     * @param array|null  $headers
      */
-    public function __construct()
+    public function __construct(int $status = 0, string $body = null, array $parsedBody = null,
+        array $headers = null)
     {
-        parent::__construct(Message::TYPE_RESPONSE);
+        $this->setStatus($status);
+
+        isset($parsedBody) && $this->setParsedBody($parsedBody);
+
+        parent::__construct(Message::TYPE_RESPONSE, null, $headers, $body);
     }
 
     /**
      * Set status.
-     * @param  string $status
+     * @param  int $status
      * @return self
      */
-    public function setStatus(string $status): self
+    public function setStatus(int $status): self
     {
         $this->status = $status;
-
-        // extract code & text
-        if (preg_match('~^HTTP/(?:.+)?\s+(\d+)(?:\s+(.*))?~i', $status, $matches)) {
-            $this->statusCode = (int) $matches[1];
-            $this->statusText = isset($matches[2]) ? trim($matches[2]) : null;
-        }
 
         return $this;
     }
 
     /**
      * Get status.
-     * @return ?string
+     * @return int
      */
-    public function getStatus(): ?string
+    public function getStatus(): int
     {
         return $this->status;
     }
 
     /**
-     * Get status code.
-     * @return ?int
+     * Set parsed body.
+     * @param  array $parsedBody
+     * @return self
      */
-    public function getStatusCode(): ?int
+    public function setParsedBody(array $parsedBody): self
     {
-        return $this->statusCode;
+        $this->parsedBody = $parsedBody;
+
+        return $this;
     }
 
     /**
-     * Get status text.
-     * @return ?string
+     * Get parsed body.
+     * @return ?array
      */
-    public function getStatusText(): ?string
+    public function getParsedBody(): ?array
     {
-        return $this->statusText;
+        return $this->parsedBody;
     }
 }
 

@@ -24,25 +24,64 @@
  */
 declare(strict_types=1);
 
-namespace froq\http\client;
+namespace froq\http\client\curl;
 
-use froq\collection\ItemCollection;
+use froq\Error;
+use Throwable;
 
 /**
- * Clients.
- * @package froq\http\client
- * @object  froq\http\client\Clients
+ * Curl Error.
+ *
+ * Represent an error object that contains a method stack that can be used to detect mostly occured
+ * cURL errors. For more error check can be done with CURLE_* constants using CurlError.getCode()
+ * method.
+ *
+ * @package froq\http\client\curl
+ * @object  froq\http\client\curl\CurlError
  * @author  Kerem Güneş <k-gun@mail.com>
- * @since   3.0
+ * @since   4.0
  */
-final class Clients extends ItemCollection
+class CurlError extends Error
 {
     /**
      * Constructor.
-     * @param array $items
+     *
+     * @param int|null       $code
+     * @param string|null    $message
+     * @param Throwable|null $previous
      */
-    public function __construct(array $items)
+    public function __construct(int $code = null, string $message = null, Throwable $previous = null)
     {
-        parent::__construct($items, Client::class);
+        parent::__construct((string) $message, (int) $code, $previous);
+    }
+
+    /**
+     * Checks error is CURLE_URL_MALFORMAT(3).
+     *
+     * @return bool
+     */
+    public function isBadUrl(): bool
+    {
+        return $this->code == 3;
+    }
+
+    /**
+     * Checks error is CURLE_COULDNT_RESOLVE_HOST(6).
+     *
+     * @return bool
+     */
+    public function isBadHost(): bool
+    {
+        return $this->code == 6;
+    }
+
+    /**
+     * Checks error is CURLE_OPERATION_TIMEDOUT(28), same CURLE_OPERATION_TIMEOUTED(28).
+     *
+     * @return bool
+     */
+    public function isTimeout(): bool
+    {
+        return $this->code == 28;
     }
 }

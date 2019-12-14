@@ -39,77 +39,137 @@ abstract class Message
     * Types.
     * @const int
     */
-    const TYPE_REQUEST  = 'Request',
-          TYPE_RESPONSE = 'Response';
+    public const TYPE_REQUEST  = 1,
+                 TYPE_RESPONSE = 2;
 
     /**
     * Type.
     * @var int
     */
-    protected $type;
+    protected int $type;
+
+    /**
+     * Http version.
+     * @var string
+     */
+    protected string $httpVersion;
 
     /**
     * Headers.
-    * @var array
+    * @var ?array
     */
-    protected $headers = [];
+    protected ?array $headers = null;
 
     /**
     * Body.
-    * @var ?any
-    */
-    protected $body;
-
-    /**
-    * Raw body.
     * @var ?string
     */
-    protected $rawBody;
+    protected ?string $body = null;
 
     /**
      * Constructor.
-     * @param string $type
+     * @param int         $type
+     * @param string|null $httpVersion
+     * @param array|null  $headers
+     * @param string|null $body
      */
-    public function __construct(string $type)
+    public function __construct(int $type, string $httpVersion = null, array $headers = null,
+        string $body = null)
     {
         $this->type = $type;
+        $this->httpVersion = $httpVersion ?? ($_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1');
+
+        isset($headers) && $this->setHeaders($headers);
+        isset($body)    && $this->setBody($body);
     }
 
     /**
-     * String magic.
+     * To string.
      * @return string
      */
-    public function __toString()
+    public final function __toString()
     {
-        return $this->toString();
+        if ($this->type == self::TYPE_REQUEST) {
+            $ret = sprintf("%s %s %s\r\n",
+                $this->getMethod(), $this->getUri(), $this->getHttpVersion());
+        } elseif ($this->type == self::TYPE_RESPONSE) {
+            $ret = sprintf("%s %s\r\n",
+                $this->getHttpVersion(), $this->getStatus());
+        }
+
+        $headers = $this->getHeaders();
+        $body = $this->getBody();
+
+        if ($headers != null) {
+            foreach ($headers as $name => $value) {
+                // Skip first line (which is already added above).
+                if ($name == '0') {
+                    continue;
+                }
+
+                if (is_array($value)) {
+                    foreach ($value as $valu) {
+                        $ret .= "{$name}: {$valu}\r\n";
+                    }
+                    continue;
+                }
+
+                $ret .= "{$name}: {$value}\r\n";
+            }
+        }
+
+        if ($body != null) {
+            $ret .= "\r\n";
+            $ret .= $body;
+        }
+
+        return $ret;
+    }
+
+    /**
+     * Get type.
+     * @return int
+     */
+    public final function getType(): int
+    {
+        return $this->type;
+    }
+
+    /**
+     * Set http version.
+     * @param  string $httpVersion
+     * @return self
+     */
+    public final function setHttpVersion(string $httpVersion): self
+    {
+        $this->httpVersion = $httpVersion;
+
+        return $this;
+    }
+
+    /**
+     * Get http version.
+     * @return string
+     */
+    public final function getHttpVersion(): string
+    {
+        return $this->httpVersion;
     }
 
     /**
      * Set headers.
-     * @param  array $headers
-     * @param  bool  $sort
+     * @param  array     $headers
+     * @param  bool|null $reset @internal
      * @return self
      */
-    public final function setHeaders(array $headers, bool $sort = true): self
+    public final function setHeaders(array $headers, bool $reset = null): self
     {
-        foreach ($headers as $key => $value) {
-            $this->setHeader((string) $key, $value);
+        if ($reset) {
+            $this->headers = [];
         }
 
-        // re-order
-        if ($sort) {
-            $headers = [];
-            if (isset($this->headers[0])) {
-                $headers[0] = $this->headers[0];
-                unset($this->headers[0]);
-            }
-
-            ksort($this->headers);
-            foreach ($this->headers as $name => $value) {
-                $headers[$name] = $value;
-            }
-
-            $this->headers = $headers;
+        foreach ($headers as $key => $value) {
+            $this->setHeader((string) $key, $value);
         }
 
         return $this;
@@ -136,13 +196,14 @@ abstract class Message
 
     /**
      * Set header.
-     * @param   string $name
-     * @param   any    $value
+     * @param   string       $name
+     * @param   string|array $value
      * @return  self
      */
     public final function setHeader(string $name, $value): self
     {
-        if ($value === null) { // null means remove
+        // Null means remove.
+        if ($value === null) {
             unset($this->headers[$name]);
         } else {
             if (is_scalar($value)) {
@@ -156,30 +217,23 @@ abstract class Message
 
     /**
      * Get header.
-     * @param  string $name
-     * @return any
+     * @param  string      $name
+     * @param  string|null $valueDefault
+     * @return string|array|null
      */
-    public final function getHeader(string $name)
+    public final function getHeader(string $name, string $valueDefault = null)
     {
-        $value = $this->headers[$name] ?? null;
-        if ($value === null) {
-            $_name = strtolower($name);
-            foreach ($this->headers as $name => $value) {
-                if ($_name == strtolower((string) $name)) {
-                    break;
-                }
-            }
-        }
-
-        return $value;
+        return $this->headers[$name]
+            ?? $this->headers[strtolower($name)]
+            ?? $valueDefault;
     }
 
     /**
      * Set body.
-     * @param  any $body
+     * @param  string $body
      * @return self
      */
-    public final function setBody($body): self
+    public final function setBody(string $body): self
     {
         $this->body = $body;
 
@@ -188,56 +242,10 @@ abstract class Message
 
     /**
      * Get body.
-     * @return any
+     * @return ?string
      */
-    public final function getBody()
+    public final function getBody(): ?string
     {
         return $this->body;
-    }
-
-    /**
-     * Set raw body.
-     * @param  any $rawBody
-     * @return self
-     */
-    public final function setRawBody($rawBody): self
-    {
-        $this->rawBody = $rawBody;
-
-        return $this;
-    }
-
-    /**
-     * Get raw body.
-     * @return any
-     */
-    public final function getRawBody()
-    {
-        return $this->rawBody;
-    }
-
-    /**
-     * To string.
-     * @param  bool $withBody
-     * @return string
-     */
-    public final function toString(bool $withBody = true): string
-    {
-        $return = '';
-
-        foreach ($this->headers as $name => $value) {
-            if ($name == '0') {
-                $return .= "{$value}\r\n";
-                continue;
-            }
-            $return .= "{$name}: {$value}\r\n";
-        }
-
-        if ($withBody) {
-            $return .= "\r\n";
-            $return .= $this->rawBody;
-        }
-
-        return $return;
     }
 }

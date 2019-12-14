@@ -1,17 +1,16 @@
 {
     "name": "froq/froq-http-client",
     "homepage": "https://github.com/froq/froq-http-client",
-    "description": "Http Client module for Froq!",
+    "description": "Froq! Http Client.",
     "keywords": ["froq", "http client"],
     "license": "MIT",
     "authors": [
         {"name": "Kerem Güneş", "email": "k-gun@mail.com"}
     ],
     "require": {
-        "php": "^7.2",
-        "froq/froq-dom": "^3.0",
-        "froq/froq-encoding": "^3.0",
-        "froq/froq-collection": "^3.1"
+        "php": "^7.4",
+        "froq/froq": "^4.0",
+        "froq/froq-event": "^4.0"
     },
     "autoload": {
         "classmap": ["src/"]
