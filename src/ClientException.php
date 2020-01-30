@@ -27,7 +27,7 @@ declare(strict_types=1);
 namespace froq\http\client;
 
 // @todo extends HttpException after move to froq-http
-use froq\Exception;
+use froq\common\Exception;
 
 /**
  * Client Exception.
