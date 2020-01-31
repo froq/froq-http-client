@@ -26,11 +26,10 @@ declare(strict_types=1);
 
 namespace froq\http\client;
 
-use froq\traits\OptionTrait;
+use froq\common\traits\OptionTrait;
 use froq\event\Events;
 use froq\http\client\{ClientException, Request, Response, Util};
 use froq\http\client\curl\{Curl, CurlError};
-use Closure;
 
 /**
  * Client.
@@ -49,7 +48,7 @@ final class Client
     /**
      * Option trait.
      *
-     * @see froq\traits\OptionTrait
+     * @see froq\common\traits\OptionTrait
      * @since 4.0
      */
     use OptionTrait;
